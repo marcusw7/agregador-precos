@@ -1,0 +1,6 @@
+# Instalação completa para desenvolvimento no Windows (interface + coleta + API + testes).
+
+-r requirements.txt
+-r requirements-coleta.txt
+-r requirements-api.txt
+pytest>=8.0

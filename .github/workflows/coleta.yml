@@ -1,0 +1,79 @@
+name: Coleta de precos
+
+# Execucao manual (Actions > Coleta de precos > Run workflow).
+on:
+  workflow_dispatch:
+    inputs:
+      termo:
+        description: "Produto especifico (vazio = catalogo completo)"
+        required: false
+        default: ""
+      exato:
+        description: "Correspondencia exata ('true' ou 'false')"
+        required: false
+        default: "false"
+  # Agendamento periodico: OPCIONAL.
+  # Descomente depois de validar uma execucao manual.
+  # Frequencia conservadora (2x por semana) para respeitar os sites das lojas.
+  # schedule:
+  #   - cron: "0 9 * * 1,4"   # segundas e quintas, 06:00 no horario de Brasilia
+
+# Impede duas coletas ao mesmo tempo: a segunda fica na fila.
+concurrency:
+  group: coleta-precos
+  cancel-in-progress: false
+
+# A coleta so escreve no banco externo; nao precisa de permissao de escrita no repo.
+permissions:
+  contents: read
+
+jobs:
+  coletar:
+    runs-on: ubuntu-latest
+    # A coleta completa leva ~15 min; 45 min da folga sem chegar perto do limite de 6h.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-coleta.txt
+
+      - name: Instalar dependencias do coletor
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-coleta.txt
+
+      - name: Instalar navegador do Playwright
+        run: playwright install --with-deps chromium
+
+      - name: Verificar se o segredo existe
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::Defina o secret DATABASE_URL (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+
+      - name: Coletar e gravar no banco
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ENTRADA_TERMO: ${{ inputs.termo }}
+          ENTRADA_EXATO: ${{ inputs.exato }}
+        run: |
+          if [ -n "$ENTRADA_TERMO" ]; then
+            if [ "$ENTRADA_EXATO" = "true" ]; then
+              python -m app.coleta --termo "$ENTRADA_TERMO" --exato
+            else
+              python -m app.coleta --termo "$ENTRADA_TERMO"
+            fi
+          else
+            python -m app.coleta
+          fi
+
+      - name: Resumo
+        if: always()
+        run: echo "Coleta finalizada. Status do job: ${{ job.status }}."

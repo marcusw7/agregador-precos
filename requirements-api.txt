@@ -1,0 +1,6 @@
+# Dependências da API (opcional: a interface principal é o Streamlit).
+
+fastapi>=0.115
+uvicorn[standard]>=0.30
+sqlalchemy>=2.0
+psycopg[binary]>=3.1

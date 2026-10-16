@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+*.db
+.env
+coleta.log
+.pytest_cache/

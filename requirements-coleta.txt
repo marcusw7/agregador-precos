@@ -1,0 +1,7 @@
+# Dependências do COLETOR (Playwright + navegador) e do acesso ao banco.
+# Usado pelo GitHub Actions e pela execução local da coleta.
+
+playwright>=1.47
+beautifulsoup4>=4.12
+sqlalchemy>=2.0
+psycopg[binary]>=3.1

@@ -1,0 +1,13 @@
+# Normaliza quebras de linha: LF no repositório, compatível com o Linux do GitHub Actions.
+* text=auto
+
+# Arquivos que devem permanecer com LF mesmo no Windows.
+*.py text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+
+# Binários
+*.png binary
+*.jpg binary
+*.db binary
