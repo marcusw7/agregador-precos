@@ -169,10 +169,13 @@ def renderizar_card(linha: pd.Series) -> None:
 
 
 def sidebar(todas: pd.DataFrame) -> dict:
-    # Padroniza todas as colunas para minúsculas para evitar KeyErrors
+    # Mostra no ecrã do Streamlit as colunas reais que o DataFrame recebeu
+    st.write("Colunas disponíveis no DataFrame:", todas.columns.tolist())
+    
     todas.columns = [str(col).lower() for col in todas.columns]
     
     categorias = [c.value for c in Categoria if c.value in set(todas["categoria"])]
+    ...
     extras = sorted(set(todas["categoria"]) - set(categorias))
     opcoes = ["Todas"] + categorias + extras
 
