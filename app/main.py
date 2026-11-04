@@ -18,12 +18,12 @@ from typing import Annotated, Literal
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app import models
-from app.categorias import Categoria
-from app.consultas import buscar_pecas
-from app.database import Base, engine, get_db, usar_postgres
-from app.schemas import HistoricoPrecoOut, PecaOut
-from app.servicos import (
+from import models
+from categorias import Categoria
+from consultas import buscar_pecas
+from database import Base, engine, get_db, usar_postgres
+from schemas import HistoricoPrecoOut, PecaOut
+from servicos import (
     atualizacao_em_andamento,
     iniciar_atualizacao,
     liberar_atualizacao,
