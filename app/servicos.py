@@ -13,12 +13,12 @@ from typing import TYPE_CHECKING
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.database import SessionLocal
-from app.models import HistoricoPreco, Peca
-from app.scrapers.normalizacao import normalizar_titulo
+from database import SessionLocal
+from models import HistoricoPreco, Peca
+from scrapers.normalizacao import normalizar_titulo
 
 if TYPE_CHECKING:  # apenas para tipagem: não importa Playwright em tempo de execução
-    from app.scrapers.base import ItemProduto
+    from scrapers.base import ItemProduto
 
 log = logging.getLogger(__name__)
 
