@@ -14,11 +14,11 @@ import logging
 import sys
 from datetime import datetime
 
-from app.consultas import nome_contem_termo
-from app.database import Base, URL_BANCO, engine, mascarar_url, usar_postgres
-from app.scrapers.catalogo import CATALOGO
-from app.scrapers.coletor import coletar
-from app.servicos import (
+from consultas import nome_contem_termo
+from database import Base, URL_BANCO, engine, mascarar_url, usar_postgres
+from scrapers.catalogo import CATALOGO
+from scrapers.coletor import coletar
+from servicos import (
     abrir_sessao,
     iniciar_atualizacao,
     liberar_atualizacao,
