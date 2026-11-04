@@ -9,12 +9,12 @@ import pandas as pd
 import streamlit as st
 from sqlalchemy import select
 
-from app.atributos import ATRIBUTOS_POR_CATEGORIA, TODOS_ATRIBUTOS, extrair_atributos
-from app.categorias import Categoria
-from app.consultas import nome_contem_termo
-from app.database import BASE_DIR, SessionLocal, engine, Base, usar_postgres
-from app.filtros import filtrar, valores_disponiveis
-from app.models import HistoricoPreco, Peca
+from atributos import ATRIBUTOS_POR_CATEGORIA, TODOS_ATRIBUTOS, extrair_atributos
+from categorias import Categoria
+from consultas import nome_contem_termo
+from database import BASE_DIR, SessionLocal, engine, Base, usar_postgres
+from filtros import filtrar, valores_disponiveis
+from models import HistoricoPreco, Peca
 
 IMAGEM_PADRAO = "https://placehold.co/400x300/f1f5f9/64748b?text=Sem+foto"
 LIMITE_CARDS = 120
