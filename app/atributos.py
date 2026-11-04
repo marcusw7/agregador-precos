@@ -1,8 +1,8 @@
 import re
 import unicodedata
 
-from app.categorias import Categoria
-from app.scrapers.normalizacao import normalizar_titulo
+from categorias import Categoria
+from scrapers.normalizacao import normalizar_titulo
 
 SUFIXOS = {"ti": "Ti", "super": "Super", "xt": "XT", "xtx": "XTX"}
 
