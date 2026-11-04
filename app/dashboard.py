@@ -169,8 +169,8 @@ def renderizar_card(linha: pd.Series) -> None:
 
 
 def sidebar(todas: pd.DataFrame) -> dict:
-    categorias = [c.value for c in Categoria if c.value in set(todas["categoria"])]
-    extras = sorted(set(todas["categoria"]) - set(categorias))
+   categorias = [c.value for c in Categoria if c.value in set(todas["Categoria"])]
+extras = sorted(set(todas["Categoria"]) - set(categorias))
     opcoes = ["Todas"] + categorias + extras
 
     with st.sidebar:
