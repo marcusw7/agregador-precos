@@ -4,9 +4,9 @@ from typing import Literal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.categorias import Categoria
-from app.models import Peca
-from app.scrapers.normalizacao import chave_comparacao
+from categorias import Categoria
+from models import Peca
+from scrapers.normalizacao import chave_comparacao
 
 ORDENACOES = {
     "preco_asc": Peca.preco_atual.asc(),
