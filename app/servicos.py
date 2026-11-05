@@ -33,7 +33,8 @@ def salvar_itens(db: Session, itens: "list[ItemProduto]") -> dict:
     novas = atualizadas = sem_preco = 0
 
     for item in por_link.values():
-        if item.preco_avista is None:
+        # Nunca grava preço inválido (ausente, zero ou negativo) como preço real.
+        if item.preco_avista is None or item.preco_avista <= 0:
             sem_preco += 1
             continue
 

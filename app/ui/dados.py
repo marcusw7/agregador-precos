@@ -11,9 +11,9 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 import streamlit as st
-from sqlalchemy import select
+from sqlalchemy import func, select
 
-from app.atributos import TODOS_ATRIBUTOS, extrair_atributos
+from app.atributos import TODOS_ATRIBUTOS, chave_produto, extrair_atributos
 from app.database import SessionLocal
 from app.models import Coleta, HistoricoPreco, Peca
 
@@ -44,18 +44,32 @@ def carregar_pecas() -> pd.DataFrame:
     if df.empty:
         return df
 
-    atributos = pd.DataFrame(
-        [extrair_atributos(nome, categoria) for nome, categoria in zip(df["nome"], df["categoria"])]
-    ).reindex(columns=TODOS_ATRIBUTOS)
-    return pd.concat([df.reset_index(drop=True), atributos.reset_index(drop=True)], axis=1)
+    atributos_list = [
+        extrair_atributos(nome, categoria)
+        for nome, categoria in zip(df["nome"], df["categoria"])
+    ]
+    chaves = [
+        chave_produto(categoria, atributos)
+        for categoria, atributos in zip(df["categoria"], atributos_list)
+    ]
+    atributos = pd.DataFrame(atributos_list).reindex(columns=TODOS_ATRIBUTOS)
+    resultado = pd.concat([df.reset_index(drop=True), atributos.reset_index(drop=True)], axis=1)
+    resultado["chave_produto"] = chaves
+    return resultado
 
 
 @st.cache_data(ttl=60)
-def carregar_historico_completo() -> pd.DataFrame:
-    """Todo o histórico de preços (peca_id, data, preco)."""
+def carregar_historico_recente(dias: int = 120) -> pd.DataFrame:
+    """Histórico dos últimos ``dias`` dias (para calcular variações 7/30/90).
+
+    Evita carregar todo o histórico de uma só vez quando ele cresce.
+    """
+    corte = datetime.now() - timedelta(days=dias)
     with SessionLocal() as db:
         registros = db.scalars(
-            select(HistoricoPreco).order_by(HistoricoPreco.data_registro)
+            select(HistoricoPreco)
+            .where(HistoricoPreco.data_registro >= corte)
+            .order_by(HistoricoPreco.data_registro)
         ).all()
         return pd.DataFrame(
             [
@@ -63,6 +77,16 @@ def carregar_historico_completo() -> pd.DataFrame:
                 for r in registros
             ]
         )
+
+
+@st.cache_data(ttl=60)
+def carregar_contagens() -> pd.Series:
+    """Total de registros de histórico por peça (para saber se há histórico suficiente)."""
+    with SessionLocal() as db:
+        linhas = db.execute(
+            select(HistoricoPreco.peca_id, func.count()).group_by(HistoricoPreco.peca_id)
+        ).all()
+    return pd.Series({peca_id: int(n) for peca_id, n in linhas}, dtype=int)
 
 
 @st.cache_data(ttl=60)
@@ -118,34 +142,12 @@ def numero_ou_none(valor) -> float | None:
     return float(valor)
 
 
-def calcular_metricas(pecas: pd.DataFrame, historico: pd.DataFrame) -> pd.DataFrame:
-    """Adiciona variação percentual (7 dias) e dias sem atualizar.
-
-    A variação compara o preço atual com o último preço registrado há 7 dias ou
-    mais. Quando não há dado suficiente, permanece ``None`` (não inventamos nada).
-    """
-    if pecas.empty:
-        pecas = pecas.copy()
-        pecas["variacao_7d"] = None
-        pecas["dias_sem_atualizar"] = 0
-        return pecas
-
-    agora = datetime.now()
-    corte = agora - timedelta(days=7)
-
-    pecas = pecas.copy()
-    pecas["dias_sem_atualizar"] = (agora - pd.to_datetime(pecas["data_varredura"])).dt.days
-
-    if historico.empty:
-        pecas["variacao_7d"] = None
-        return pecas
-
-    historico = historico.copy()
-    historico["data"] = pd.to_datetime(historico["data"])
+def _variacao_periodo(pecas: pd.DataFrame, historico: pd.DataFrame, dias: int) -> pd.Series:
+    """Variação percentual do preço atual em relação ao último preço há ``dias`` dias ou mais."""
+    corte = datetime.now() - timedelta(days=dias)
     antigo = historico[historico["data"] <= corte]
     if antigo.empty:
-        pecas["variacao_7d"] = None
-        return pecas
+        return pd.Series(index=pecas.index, dtype=float)
 
     base = antigo.sort_values("data").groupby("peca_id").tail(1)
     base = base.drop_duplicates("peca_id", keep="last").set_index("peca_id")["preco"]
@@ -153,18 +155,55 @@ def calcular_metricas(pecas: pd.DataFrame, historico: pd.DataFrame) -> pd.DataFr
     preco_base = pecas["id"].map(base)
     variacao = (pecas["preco_atual"] - preco_base) / preco_base * 100.0
     variacao = variacao.where(preco_base.notna())
-    pecas["variacao_7d"] = variacao.where(~variacao.isin([math.inf, -math.inf]))
+    return variacao.where(~variacao.isin([math.inf, -math.inf]))
+
+
+def calcular_metricas(pecas: pd.DataFrame, historico: pd.DataFrame | None) -> pd.DataFrame:
+    """Adiciona variações 7/30/90 dias e dias sem atualizar.
+
+    A variação compara o preço atual com o último preço registrado há N dias ou
+    mais. Sem dado suficiente, permanece ``None`` (não inventamos nada).
+    """
+    pecas = pecas.copy()
+    pecas["variacao_7d"] = None
+    pecas["variacao_30d"] = None
+    pecas["variacao_90d"] = None
+    pecas["dias_sem_atualizar"] = 0
+
+    if pecas.empty:
+        return pecas
+
+    agora = datetime.now()
+    pecas["dias_sem_atualizar"] = (
+        agora - pd.to_datetime(pecas["data_varredura"])
+    ).dt.days
+
+    if historico is None or historico.empty:
+        return pecas
+
+    historico = historico.copy()
+    historico["data"] = pd.to_datetime(historico["data"])
+
+    pecas["variacao_7d"] = _variacao_periodo(pecas, historico, 7)
+    pecas["variacao_30d"] = _variacao_periodo(pecas, historico, 30)
+    pecas["variacao_90d"] = _variacao_periodo(pecas, historico, 90)
     return pecas
 
 
 @st.cache_data(ttl=60)
 def catalogo_com_metricas() -> pd.DataFrame:
-    """Catálogo completo com as métricas derivadas (variação 7d, dias sem atualizar).
+    """Catálogo completo com métricas (variações 7/30/90, dias sem atualizar, nº de registros).
 
-    O cálculo das métricas percorre todo o histórico, então é cacheado para que
-    navegar/filtrar centenas de produtos não recalcule tudo a cada interação.
+    Usa apenas o histórico recente para as variações e uma contagem agregada por SQL,
+    evitando carregar todo o histórico de uma só vez.
     """
-    return calcular_metricas(carregar_pecas(), carregar_historico_completo())
+    pecas = carregar_pecas()
+    recente = carregar_historico_recente(120)
+    contagens = carregar_contagens()
+
+    metricas = calcular_metricas(pecas, recente)
+    metricas["n_registros"] = metricas["id"].map(contagens).fillna(0).astype(int)
+    return metricas
 
 
 def resumo_estatistico(pecas: pd.DataFrame, historico: pd.DataFrame, coletas: pd.DataFrame) -> dict:
@@ -190,7 +229,11 @@ def resumo_estatistico(pecas: pd.DataFrame, historico: pd.DataFrame, coletas: pd
 
     no_minimo = 0
     if total:
-        no_minimo = int((pecas["preco_atual"] <= pecas["menor_preco_historico"]).sum())
+        condicao = pecas["preco_atual"] <= pecas["menor_preco_historico"]
+        if "n_registros" in pecas.columns:
+            # "Menor histórico" só é significativo com mais de um registro.
+            condicao = condicao & (pecas["n_registros"] >= 2)
+        no_minimo = int(condicao.sum())
 
     return {
         "total": total,

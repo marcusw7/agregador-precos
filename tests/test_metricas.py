@@ -66,3 +66,46 @@ def test_pecas_vazias_nao_quebram():
         pd.DataFrame(columns=["peca_id", "data", "preco"]),
     )
     assert resultado.empty or "variacao_7d" in resultado.columns
+
+
+def test_variacoes_30d_e_90d_por_periodo():
+    agora = datetime.now()
+    pecas = _pecas([(1, 700.0)], agora)
+    historico = pd.DataFrame(
+        {
+            "peca_id": [1, 1, 1],
+            "data": [agora - timedelta(days=100), agora - timedelta(days=10), agora],
+            "preco": [1000.0, 900.0, 700.0],
+        }
+    )
+
+    resultado = calcular_metricas(pecas, historico)
+    linha = resultado.iloc[0]
+
+    # 7 dias: base = 10 dias atrás (900) -> (700-900)/900 ≈ -22,2%
+    assert abs(linha["variacao_7d"] + 22.22) < 0.1
+    # 30 dias: base = 100 dias atrás (1000) -> -30%
+    assert abs(linha["variacao_30d"] + 30.0) < 0.01
+    # 90 dias: base = 100 dias atrás (1000) -> -30%
+    assert abs(linha["variacao_90d"] + 30.0) < 0.01
+
+
+def test_resumo_no_minimo_exige_mais_de_um_registro():
+    from app.ui.dados import resumo_estatistico
+
+    agora = datetime.now()
+    pecas = pd.DataFrame(
+        {
+            "id": [1, 2],
+            "categoria": ["GPU", "GPU"],
+            "preco_atual": [100.0, 200.0],
+            "menor_preco_historico": [100.0, 200.0],
+            "loja": ["Loja", "Loja"],
+            "link": ["a", "b"],
+            "data_varredura": [agora, agora],
+            "n_registros": [1, 2],
+        }
+    )
+    resumo = resumo_estatistico(pecas, None, pd.DataFrame())
+    # peça 1 tem só 1 registro (não conta); peça 2 tem 2 (conta)
+    assert resumo["no_minimo"] == 1

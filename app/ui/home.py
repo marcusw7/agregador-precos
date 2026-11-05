@@ -112,8 +112,11 @@ def render() -> None:
     else:
         st.html(grade_cards_html(quedas, DESTAQUES))
 
-    # Melhores ofertas (no menor histórico)
-    melhores = metricas[metricas["preco_atual"] <= metricas["menor_preco_historico"]]
+    # Melhores ofertas (no menor histórico, com histórico suficiente)
+    melhores = metricas[
+        (metricas["preco_atual"] <= metricas["menor_preco_historico"])
+        & (metricas["n_registros"] >= 2)
+    ]
     melhores = melhores.sort_values("preco_atual").head(DESTAQUES)
     secao("🟢 Melhores ofertas (no menor preço histórico)", "?pagina=catalogo")
     if melhores.empty:

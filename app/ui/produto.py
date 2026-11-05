@@ -8,7 +8,6 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-from app.scrapers.normalizacao import chave_comparacao
 from app.ui.dados import (
     IMAGEM_PADRAO,
     carregar_historico,
@@ -76,11 +75,12 @@ def _grafico(historico: pd.DataFrame, periodo: str) -> alt.Chart | None:
     )
 
 
-def _comparacao_lojas(peca: pd.Series, todas: pd.DataFrame) -> pd.DataFrame:
-    """Outras ofertas do mesmo produto (título normalizado) em lojas diferentes."""
-    chave = chave_comparacao(peca["nome"])
-    chaves = todas["nome"].map(chave_comparacao)
-    mesmo = todas[chaves == chave]
+def _ofertas_mesmo_modelo(peca: pd.Series, todas: pd.DataFrame) -> pd.DataFrame:
+    """Ofertas do mesmo modelo (marca + especificações) em outras lojas."""
+    chave = peca.get("chave_produto")
+    if not chave or pd.isna(chave):
+        return todas.iloc[0:0]
+    mesmo = todas[todas["chave_produto"] == chave]
     if len(mesmo) <= 1:
         return mesmo.iloc[0:0]
     return mesmo.sort_values("preco_atual")
@@ -134,21 +134,31 @@ def render() -> None:
         st.html(f'<div class="pt-price-hero">R$ {formatar_brl(peca["preco_atual"])}</div>')
 
         menor_hist = float(peca["menor_preco_historico"])
-        no_minimo = float(peca["preco_atual"]) <= menor_hist
+        n_registros = int(peca.get("n_registros") or 0)
+        no_minimo = (float(peca["preco_atual"]) <= menor_hist) and (n_registros >= 2)
         st.html(
             f'<div class="pt-card-min">Menor preço histórico: <b>R$ {formatar_brl(menor_hist)}</b>'
             f'{" — <span class=&quot;pt-badge pt-badge-verde&quot;>no menor preço</span>" if no_minimo else ""}</div>'
         )
 
-        # Variação 7 dias
+        # Variações 7/30/90 dias
         linha = todas[todas["id"] == peca_id]
+        variacoes = []
         if not linha.empty:
-            variacao = numero_ou_none(linha.iloc[0].get("variacao_7d"))
-            if variacao is not None:
+            for rotulo, campo in (
+                ("7 dias", "variacao_7d"),
+                ("30 dias", "variacao_30d"),
+                ("90 dias", "variacao_90d"),
+            ):
+                variacao = numero_ou_none(linha.iloc[0].get(campo))
+                if variacao is None:
+                    continue
                 sinal = "▼" if variacao < 0 else ("▲" if variacao > 0 else "=")
                 cor = COR_VERDE if variacao < 0 else ("#f87171" if variacao > 0 else COR_MUDO)
                 variacao_txt = f"{variacao:+.1f}".replace(".", ",")
-                st.html(f'Variação (7 dias): <b style="color:{cor}">{sinal} {variacao_txt}%</b>')
+                variacoes.append(f"{rotulo}: <b style='color:{cor}'>{sinal} {variacao_txt}%</b>")
+        if variacoes:
+            st.html('<div class="pt-card-min">Variação — ' + " &nbsp;·&nbsp; ".join(variacoes) + "</div>")
 
         st.html(f'<div class="pt-card-min">Última verificação: {formatar_data(peca["data_varredura"])}</div>')
 
@@ -188,11 +198,15 @@ def render() -> None:
         if len(historico) == 1:
             st.caption("Ainda há só uma varredura para este produto. O gráfico ganha linhas nas próximas atualizações.")
 
-    # ---- Comparação entre lojas
-    comparacao = _comparacao_lojas(peca, todas)
+    # ---- Ofertas do mesmo modelo em outras lojas
+    comparacao = _ofertas_mesmo_modelo(peca, todas)
     if len(comparacao) > 1:
         st.divider()
-        st.html('<div class="pt-section"><h2>🏪 Ofertas do mesmo produto</h2></div>')
+        st.html('<div class="pt-section"><h2>🏪 Ofertas do mesmo modelo</h2></div>')
+        mais_barato = comparacao.iloc[0]
+        st.caption(
+            f"Mais barato: {esc(mais_barato['loja'])} — R$ {formatar_brl(mais_barato['preco_atual'])}"
+        )
         tabela = comparacao[
             ["loja", "preco_atual", "menor_preco_historico", "data_varredura", "link"]
         ].rename(
@@ -204,6 +218,7 @@ def render() -> None:
                 "link": "Link",
             }
         )
+        tabela["Mais barata"] = ["✅" if i == 0 else "" for i in range(len(tabela))]
         st.dataframe(
             tabela,
             hide_index=True,

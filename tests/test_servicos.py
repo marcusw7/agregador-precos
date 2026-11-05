@@ -79,6 +79,21 @@ def test_salvar_ignora_sem_preco_e_deduplica_link(db: Session):
     assert db.query(Peca).count() == 1
 
 
+def test_salvar_ignora_preco_zero_e_negativo(db: Session):
+    """Preços inválidos (zero/negativo) nunca entram no histórico."""
+    resumo = salvar_itens(db, [
+        item("https://x/zero", "0.00"),
+        item("https://x/neg", "-5.00"),
+        item("https://x/ok", "100.00"),
+    ])
+
+    assert resumo == {"novas": 1, "atualizadas": 0, "sem_preco": 2}
+    assert db.query(Peca).count() == 1
+    peca = db.scalar(select(Peca).where(Peca.link == "https://x/ok"))
+    assert peca.preco_atual == Decimal("100.00")
+    assert len(peca.historico) == 1
+
+
 def test_buscar_pecas_filtra_categoria_preco_e_minimo_historico(db: Session):
     salvar_itens(db, [
         item("https://x/1", "1000.00", Categoria.GPU.value, "GPU barata"),

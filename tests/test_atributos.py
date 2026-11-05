@@ -111,3 +111,26 @@ def test_atributos_cadeira():
 
     ergonomica = extrair_atributos("Cadeira Ergonômica de Escritório", "Cadeira")
     assert ergonomica["Tipo"] == "Ergonômica"
+
+
+def test_chave_produto_agrupa_mesmo_modelo():
+    from app.atributos import chave_produto
+
+    a = extrair_atributos("Placa de Vídeo ASRock RX 7600 Challenger OC 8GB", "GPU")
+    b = extrair_atributos("Placa de Video Asrock Radeon RX 7600 8GB GDDR6", "GPU")
+    assert chave_produto("GPU", a) == chave_produto("GPU", b)
+
+
+def test_chave_produto_nao_agrupa_marcas_diferentes():
+    from app.atributos import chave_produto
+
+    asrock = extrair_atributos("Placa de Vídeo ASRock RX 7600 8GB", "GPU")
+    power = extrair_atributos("Placa de Vídeo PowerColor RX 7600 8GB", "GPU")
+    assert chave_produto("GPU", asrock) != chave_produto("GPU", power)
+
+
+def test_chave_produto_sem_informacao_suficiente_retorna_none():
+    from app.atributos import chave_produto
+
+    assert chave_produto("GPU", {"Chip": "RX 7600"}) is None  # sem marca
+    assert chave_produto("Cadeira", {"Marca": "ThunderX3", "Tipo": "Gamer"}) is None

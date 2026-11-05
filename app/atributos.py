@@ -92,6 +92,18 @@ ATRIBUTOS_POR_CATEGORIA: dict[str, list[str]] = {
     Categoria.CADEIRA.value: ["Tipo"],
 }
 
+# Atributos usados para agrupar o mesmo modelo entre lojas. É mais restrito que
+# ATRIBUTOS_POR_CATEGORIA: para CPU, por exemplo, o "Modelo" já determina o socket.
+ATRIBUTOS_AGRUPAMENTO: dict[str, list[str]] = {
+    Categoria.GPU.value: ["Chip", "VRAM"],
+    Categoria.CPU.value: ["Modelo"],
+    Categoria.PLACA_MAE.value: ["Chipset", "Socket"],
+    Categoria.MEMORIA_RAM.value: ["Tipo", "Capacidade", "Frequência"],
+    Categoria.SSD.value: ["Interface", "Capacidade"],
+    Categoria.MONITOR.value: ["Tamanho", "Resolução", "Taxa"],
+    Categoria.CADEIRA.value: [],
+}
+
 TODOS_ATRIBUTOS = [
     "Marca",
     "Chip",
@@ -278,3 +290,32 @@ def extrair_atributos(titulo: str, categoria: str) -> dict[str, str]:
             atributos["Tipo"] = tipo
 
     return atributos
+
+
+def chave_produto(categoria: str, atributos: dict[str, str]) -> str | None:
+    """Chave de agrupamento para reconhecer o mesmo modelo em lojas diferentes.
+
+    Usa marca + especificações técnicas (chip/modelo/chipset/capacidade...), não
+    apenas o título. Retorna ``None`` quando não há informação suficiente para
+    agrupar com segurança, evitando juntar produtos diferentes.
+    """
+    if categoria == Categoria.CADEIRA.value:
+        # Cadeiras não têm identificador de modelo confiável extraído; não agrupa.
+        return None
+
+    marca = atributos.get("Marca")
+    if not marca:
+        return None
+
+    partes = [categoria, marca]
+    tem_especificacao = False
+    for atributo in ATRIBUTOS_AGRUPAMENTO.get(categoria, []):
+        valor = atributos.get(atributo)
+        if valor:
+            partes.append(valor)
+            tem_especificacao = True
+
+    if not tem_especificacao:
+        return None
+
+    return "|".join(p.lower() for p in partes)

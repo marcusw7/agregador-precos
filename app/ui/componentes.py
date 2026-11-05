@@ -58,7 +58,12 @@ def card_html(linha: pd.Series) -> str:
     variacao = numero_ou_none(linha.get("variacao_7d"))
     dias = numero_ou_none(linha.get("dias_sem_atualizar"))
 
-    no_minimo = float(linha["preco_atual"]) <= float(linha["menor_preco_historico"])
+    n_registros = int(linha.get("n_registros") or 0)
+    # "Menor histórico" só é mostrado quando há mais de um registro (senão é óbvio/enganoso).
+    no_minimo = (
+        float(linha["preco_atual"]) <= float(linha["menor_preco_historico"])
+        and n_registros >= 2
+    )
 
     badges = []
     if no_minimo:
