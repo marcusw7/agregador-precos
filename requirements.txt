@@ -2,7 +2,7 @@
 # É este arquivo que o Streamlit Community Cloud usa.
 # Não inclui Playwright/Chromium: a coleta roda em outro ambiente (GitHub Actions).
 
-streamlit>=1.40
+streamlit>=1.50
 altair>=5.0
 pandas>=2.0
 sqlalchemy>=2.0

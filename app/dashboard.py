@@ -3,11 +3,20 @@ import importlib.util
 import math
 import subprocess
 import sys
+from pathlib import Path
+
+# O Streamlit Community Cloud executa ``app/dashboard.py`` adicionando ao ``sys.path``
+# apenas a pasta do script (``app/``), e não a raiz do repositório. Sem este ajuste,
+# ``from app... import ...`` falha com ``ModuleNotFoundError: No module named 'app'``.
+_RAIZ = Path(__file__).resolve().parent.parent
+if str(_RAIZ) not in sys.path:
+    sys.path.insert(0, str(_RAIZ))
 
 import altair as alt
 import pandas as pd
 import streamlit as st
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.atributos import ATRIBUTOS_POR_CATEGORIA, TODOS_ATRIBUTOS, extrair_atributos
 from app.categorias import Categoria
@@ -51,6 +60,17 @@ ESTILO = """
 .chip {
     display: inline-block; font-size: 12px; color: #1e293b; background: #e2e8f0;
     border-radius: 999px; padding: 3px 10px; margin: 0 6px 6px 0;
+}
+/* Em telas estreitas (celular), empilha as colunas em vez de espremê-las. */
+@media (max-width: 640px) {
+    div[data-testid="stHorizontalBlock"] {
+        flex-wrap: wrap;
+    }
+    div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
+        flex: 1 1 100% !important;
+        width: 100% !important;
+        min-width: 100% !important;
+    }
 }
 </style>
 """
@@ -165,7 +185,7 @@ def renderizar_card(linha: pd.Series) -> None:
             """,
             unsafe_allow_html=True,
         )
-        st.link_button("Ir para a Loja ➜", linha["link"], use_container_width=True, type="primary")
+        st.link_button("Ir para a Loja ➜", linha["link"], width="stretch", type="primary")
 
 
 def sidebar(todas: pd.DataFrame) -> dict:
@@ -272,7 +292,7 @@ def secao_historico(df: pd.DataFrame) -> None:
         )
         .properties(height=340)
     )
-    st.altair_chart(grafico, use_container_width=True)
+    st.altair_chart(grafico, width="stretch")
 
 
 def secao_pesquisa(todas: pd.DataFrame, termo: str, exato: bool) -> None:
@@ -331,9 +351,18 @@ def secao_pesquisa(todas: pd.DataFrame, termo: str, exato: bool) -> None:
 def main() -> None:
     st.set_page_config(page_title="Agregador de Hardware", page_icon="🖥️", layout="wide")
     st.markdown(ESTILO, unsafe_allow_html=True)
-    Base.metadata.create_all(bind=engine)
 
-    todas = carregar_pecas()
+    try:
+        Base.metadata.create_all(bind=engine)
+        todas = carregar_pecas()
+    except SQLAlchemyError as erro:
+        st.error(
+            "Não foi possível conectar ao banco de dados. Verifique a variável "
+            "`DATABASE_URL` (ou o Secret no Streamlit Cloud) e se o banco aceita "
+            f"conexões externas. Detalhe: {type(erro).__name__}"
+        )
+        st.stop()
+
     filtros = sidebar(todas)
 
     st.title("🖥️ Agregador de Preços de Hardware")
@@ -412,4 +441,5 @@ def main() -> None:
     secao_historico(df)
 
 
-main()
+if __name__ == "__main__":
+    main()
