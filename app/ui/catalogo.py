@@ -151,4 +151,4 @@ def render() -> None:
     if len(df) > LIMITE_CARDS:
         st.caption(f"Mostrando {LIMITE_CARDS} de {len(df)} produtos. Use os filtros para refinar.")
 
-    st.markdown(grade_cards_html(df, LIMITE_CARDS), unsafe_allow_html=True)
+    st.html(grade_cards_html(df, LIMITE_CARDS))

@@ -149,6 +149,7 @@ header[data-testid="stHeader"] { background: transparent; }
 .pt-badge {
   display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .02em;
   padding: 3px 9px; border-radius: 999px; line-height: 1.4; white-space: nowrap;
+  margin: 0 6px 6px 0;
 }
 .pt-badge-cat { color: #c7d2fe; background: rgba(99, 102, 241, 0.16); }
 .pt-badge-loja { color: #fff; background: linear-gradient(90deg, #f97316, #ea580c); }
@@ -202,7 +203,7 @@ header[data-testid="stHeader"] { background: transparent; }
 
 def aplicar_tema() -> None:
     """Aplica o CSS global. Chame uma única vez, logo após set_page_config."""
-    st.markdown(f"<style>{ESTILO}</style>", unsafe_allow_html=True)
+    st.html(f"<style>{ESTILO}</style>")
 
 
 def logotipo() -> str:
@@ -220,14 +221,13 @@ def navbar(pagina_ativa: str) -> None:
         f'<a class="pt-nav-link{" active" if chave == pagina_ativa else ""}" href="?pagina={chave}">{rotulo}</a>'
         for chave, rotulo in links
     )
-    st.markdown(
+    st.html(
         f"""
         <div class="pt-navbar">
           <a class="pt-brand" href="?pagina=inicio">{LOGO_SVG}</a>
           <div class="pt-nav-links">{itens}</div>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 

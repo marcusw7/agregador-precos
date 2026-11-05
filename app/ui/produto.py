@@ -91,7 +91,7 @@ def render() -> None:
     todas = carregar_pecas()
     historico_completo = carregar_historico_completo()
 
-    st.markdown('<a class="pt-nav-link" href="?pagina=catalogo">← Voltar ao catálogo</a>', unsafe_allow_html=True)
+    st.html('<a class="pt-nav-link" href="?pagina=catalogo">← Voltar ao catálogo</a>')
 
     try:
         peca_id = int(st.query_params.get("id", "0") or 0)
@@ -114,16 +114,15 @@ def render() -> None:
     col_esq, col_dir = st.columns([2, 3], gap="large")
 
     with col_esq:
-        st.markdown(
+        st.html(
             f'<div class="pt-produto-img"><img src="{esc(imagem)}" alt="{nome}" '
-            f'onerror="this.onerror=null;this.src=\'{IMAGEM_PADRAO}\';"/></div>',
-            unsafe_allow_html=True,
+            f'onerror="this.onerror=null;this.src=\'{IMAGEM_PADRAO}\';"/></div>'
         )
 
     with col_dir:
-        st.markdown(f'<span class="pt-badge pt-badge-cat">{categoria}</span>', unsafe_allow_html=True)
+        st.html(f'<span class="pt-badge pt-badge-cat">{categoria}</span>')
         st.markdown(f"# {nome}")
-        st.markdown(f'<span class="pt-badge pt-badge-loja">🏪 {loja}</span>', unsafe_allow_html=True)
+        st.html(f'<span class="pt-badge pt-badge-loja">🏪 {loja}</span>')
 
         # Especificações
         specs = []
@@ -132,16 +131,15 @@ def render() -> None:
             if isinstance(valor, str) and valor:
                 specs.append(f'<span class="pt-badge pt-badge-mudo">{esc(atributo)}: {esc(valor)}</span>')
         if specs:
-            st.markdown(f'<div class="pt-spec">{"".join(specs)}</div>', unsafe_allow_html=True)
+            st.html(f'<div class="pt-spec">{"".join(specs)}</div>')
 
-        st.markdown(f'<div class="pt-price-hero">R$ {formatar_brl(peca["preco_atual"])}</div>', unsafe_allow_html=True)
+        st.html(f'<div class="pt-price-hero">R$ {formatar_brl(peca["preco_atual"])}</div>')
 
         menor_hist = float(peca["menor_preco_historico"])
         no_minimo = float(peca["preco_atual"]) <= menor_hist
-        st.markdown(
+        st.html(
             f'<div class="pt-card-min">Menor preço histórico: <b>R$ {formatar_brl(menor_hist)}</b>'
-            f'{" — <span class=&quot;pt-badge pt-badge-verde&quot;>no menor preço</span>" if no_minimo else ""}</div>',
-            unsafe_allow_html=True,
+            f'{" — <span class=&quot;pt-badge pt-badge-verde&quot;>no menor preço</span>" if no_minimo else ""}</div>'
         )
 
         # Variação 7 dias
@@ -152,24 +150,20 @@ def render() -> None:
             if variacao is not None:
                 sinal = "▼" if variacao < 0 else ("▲" if variacao > 0 else "=")
                 cor = COR_VERDE if variacao < 0 else ("#f87171" if variacao > 0 else COR_MUDO)
-                st.markdown(
-                    f'Variação (7 dias): <b style="color:{cor}">{sinal} {variacao:+.1f}%</b>'
-                    .replace(".", ","),
-                    unsafe_allow_html=True,
-                )
+                variacao_txt = f"{variacao:+.1f}".replace(".", ",")
+                st.html(f'Variação (7 dias): <b style="color:{cor}">{sinal} {variacao_txt}%</b>')
 
-        st.markdown(f'<div class="pt-card-min">Última verificação: {formatar_data(peca["data_varredura"])}</div>', unsafe_allow_html=True)
+        st.html(f'<div class="pt-card-min">Última verificação: {formatar_data(peca["data_varredura"])}</div>')
 
-        st.markdown(
+        st.html(
             f'<a class="pt-btn pt-btn-primario" href="{esc(peca["link"])}" target="_blank" rel="noopener">'
-            "Ir para a Loja ↗</a>",
-            unsafe_allow_html=True,
+            "Ir para a Loja ↗</a>"
         )
 
     st.divider()
 
     # ---- Histórico
-    st.markdown('<div class="pt-section"><h2>📈 Histórico de preços</h2></div>', unsafe_allow_html=True)
+    st.html('<div class="pt-section"><h2>📈 Histórico de preços</h2></div>')
 
     if historico.empty:
         st.info("Este produto ainda não tem histórico registrado.")
@@ -201,7 +195,7 @@ def render() -> None:
     comparacao = _comparacao_lojas(peca, todas)
     if len(comparacao) > 1:
         st.divider()
-        st.markdown('<div class="pt-section"><h2>🏪 Ofertas do mesmo produto</h2></div>', unsafe_allow_html=True)
+        st.html('<div class="pt-section"><h2>🏪 Ofertas do mesmo produto</h2></div>')
         tabela = comparacao[
             ["loja", "preco_atual", "menor_preco_historico", "data_varredura", "link"]
         ].rename(
@@ -224,4 +218,4 @@ def render() -> None:
             },
         )
 
-    st.markdown(f'<div class="pt-card-min" style="color:{COR_AMBAR}">Preços à vista; podem variar conforme a loja.</div>', unsafe_allow_html=True)
+    st.html(f'<div class="pt-card-min" style="color:{COR_AMBAR}">Preços à vista; podem variar conforme a loja.</div>')

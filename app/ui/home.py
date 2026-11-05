@@ -70,10 +70,9 @@ def _painel_coleta(coletas: pd.DataFrame, resumo: dict) -> None:
         if erro:
             texto += f" · <span title='{esc(erro)}'>erro</span>"
 
-    st.markdown(
+    st.html(
         f"<div class='pt-stat' style='margin-bottom:20px'><div class='pt-stat-label'>Status da coleta automática</div>"
-        f"<div class='pt-stat-sub'>{texto} · próxima: a cada 6 horas (GitHub Actions)</div></div>",
-        unsafe_allow_html=True,
+        f"<div class='pt-stat-sub'>{texto} · próxima: a cada 6 horas (GitHub Actions)</div></div>"
     )
 
     if coletor_disponivel():
@@ -93,19 +92,18 @@ def render() -> None:
     resumo = resumo_estatistico(todas, historico, coletas)
 
     # Hero
-    st.markdown(
+    st.html(
         """
         <div class="pt-hero">
           <h1>Acompanhe e economize em hardware</h1>
           <p>Compare preços de GPU, CPU, placa-mãe, memória RAM, SSD, monitores e cadeiras entre lojas brasileiras,
              com histórico de preços e alertas de queda — tudo em um só lugar.</p>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
     barra_pesquisa()
-    st.markdown(_estatisticas(resumo), unsafe_allow_html=True)
+    st.html(_estatisticas(resumo))
     _painel_coleta(coletas, resumo)
 
     if todas.empty:
@@ -119,7 +117,7 @@ def render() -> None:
     if quedas.empty:
         st.caption("Sem quedas registradas nos últimos 7 dias (ou dados insuficientes).")
     else:
-        st.markdown(grade_cards_html(quedas, DESTAQUES), unsafe_allow_html=True)
+        st.html(grade_cards_html(quedas, DESTAQUES))
 
     # Melhores ofertas (no menor histórico)
     melhores = metricas[metricas["preco_atual"] <= metricas["menor_preco_historico"]]
@@ -128,9 +126,9 @@ def render() -> None:
     if melhores.empty:
         st.caption("Nenhum produto está no menor preço histórico no momento.")
     else:
-        st.markdown(grade_cards_html(melhores, DESTAQUES), unsafe_allow_html=True)
+        st.html(grade_cards_html(melhores, DESTAQUES))
 
     # Atualizados recentemente
     recentes = metricas.sort_values("data_varredura", ascending=False).head(DESTAQUES)
     secao("🕒 Atualizados recentemente", "?pagina=catalogo")
-    st.markdown(grade_cards_html(recentes, DESTAQUES), unsafe_allow_html=True)
+    st.html(grade_cards_html(recentes, DESTAQUES))

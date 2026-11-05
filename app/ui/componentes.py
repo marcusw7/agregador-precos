@@ -98,7 +98,6 @@ def grade_cards_html(df: pd.DataFrame, limite: int = 120) -> str:
 def secao(titulo: str, link: str | None = None, link_rotulo: str = "Ver tudo") -> None:
     """Título de seção com um link opcional à direita."""
     lado = f'<a href="{link}">{link_rotulo} →</a>' if link else ""
-    st.markdown(
+    st.html(
         f'<div class="pt-section"><h2>{esc(titulo)}</h2>{lado}</div>',
-        unsafe_allow_html=True,
     )
