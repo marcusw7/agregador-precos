@@ -2,6 +2,10 @@
 
 > Comparação e acompanhamento de preços de hardware, com histórico e detecção de quedas.
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
+
 ## Sobre
 
 O **PromoTracker** monitora preços de **GPU, CPU, placa-mãe, memória RAM, SSD, monitores e
@@ -108,6 +112,11 @@ Segredos nunca devem ser versionados: use variáveis de ambiente (local) e **Sec
 ## Contribuindo
 
 Contribuições são bem-vindas. Abra uma *issue* para relatar problemas ou sugerir melhorias.
+
+## Licença
+
+Distribuído sob a licença **MIT**. Consulte o arquivo [LICENSE](LICENSE) para os termos
+completos.
 
 ---
 
