@@ -1,7 +1,22 @@
-# Agregador de Preços de Hardware
+# PromoTracker
 
-Compara preços de **GPU, CPU, placa-mãe, memória RAM e SSD** em cinco lojas brasileiras
-(KaBuM!, Pichau, Terabyte, Patoloco e Amazon) e guarda o **histórico de preços**.
+Plataforma de **comparação e acompanhamento de preços de hardware**. Monitora **GPU, CPU,
+placa-mãe, memória RAM e SSD** em cinco lojas brasileiras (KaBuM!, Pichau, Terabyte,
+Patoloco e Amazon) e mantém o **histórico de preços** para você acompanhar a evolução e
+identificar as melhores oportunidades.
+
+## Funcionalidades
+
+- **Dashboard** com estatísticas do monitoramento, status da coleta automática, maiores
+  quedas de preço, melhores ofertas e produtos atualizados recentemente.
+- **Catálogo** com filtros (categoria, fabricante, loja, faixa de preço, atributos) e
+  ordenação (menor preço, maior queda em 7 dias, mais recentes).
+- **Página do produto** com especificações, histórico de preços (7/30/90 dias/completo),
+  menor/maior/média e comparação do mesmo produto entre lojas.
+- **Coleta automática** a cada 6 horas via GitHub Actions, com registro de status e
+  contadores de cada execução.
+- **Histórico** persistente de preços por oferta (nunca inventa dados: sem registro, sem
+  variação).
 
 ## Arquitetura
 
@@ -25,15 +40,23 @@ O banco é escolhido pela variável `DATABASE_URL`: sem ela, usa o **SQLite loca
 
 ```
 app/
+├── dashboard.py        # entrada do Streamlit (navegação entre páginas)
+├── ui/                 # interface PromoTracker (tema, páginas e componentes)
+│   ├── theme.py        # identidade visual (paleta, CSS, logotipo SVG)
+│   ├── home.py         # dashboard inicial
+│   ├── catalogo.py     # catálogo com filtros e cards
+│   ├── produto.py      # página individual do produto + histórico
+│   ├── componentes.py  # cards, busca e seções reutilizáveis
+│   ├── dados.py        # leituras do banco (cache) e métricas derivadas
+│   └── coleta_local.py # gatilho de coleta local (só com Playwright)
 ├── database.py        # engine do banco (SQLite local ou PostgreSQL por DATABASE_URL)
-├── models.py          # tabelas pecas e historico_precos
+├── models.py          # tabelas pecas, historico_precos e coletas
 ├── servicos.py        # gravação no banco (não importa Playwright)
 ├── coleta.py          # orquestra a coleta (usa Playwright) + linha de comando
 ├── consultas.py       # consultas e regra de busca por termo
 ├── filtros.py         # filtros e ordenação (pandas)
 ├── atributos.py       # extrai marca, chip, socket, interface etc. do título
 ├── categorias.py      # categorias monitoradas
-├── dashboard.py       # interface Streamlit
 ├── main.py            # API FastAPI (opcional)
 └── scrapers/          # um módulo por loja + base comum
 scripts/
@@ -46,8 +69,6 @@ tests/
 
 - Python 3.12 ou superior (testado com 3.14 no Windows).
 - Node.js **não** é necessário.
-
----
 
 ## Execução local no Windows
 
@@ -66,7 +87,7 @@ pip install -r requirements-dev.txt
 playwright install chromium
 
 # 4. Interface (usa o SQLite local automaticamente)
-python -m streamlit run app/dashboard.py
+streamlit run app/dashboard.py
 ```
 
 Instalações parciais, se você quiser só uma parte:
@@ -86,9 +107,9 @@ python -m app.coleta                              # coleta o catálogo completo
 python -m app.coleta --termo "RTX 4060" --exato   # um produto específico
 ```
 
-Na interface, com Playwright instalado, aparece o botão **"Atualizar preços nas lojas"**.
-Ele sobe a coleta em um **processo separado**, então a tela não fica travada. O log sai em
-`coleta.log`.
+Na interface, com Playwright instalado, aparece o botão **"Atualizar preços agora"** na
+página inicial. Ele sobe a coleta em um **processo separado**, sem travar a tela. O log
+sai em `coleta.log`.
 
 ### API (opcional)
 
@@ -101,8 +122,6 @@ python -m uvicorn app.main:app --reload     # http://127.0.0.1:8000/docs
 ```powershell
 pytest -q
 ```
-
----
 
 ## Variáveis de ambiente
 
@@ -118,8 +137,6 @@ ambiente (local) e Secrets (GitHub / Streamlit).
 
 O Streamlit Community Cloud entrega segredos por `st.secrets`; `app/database.py` lê das
 duas formas (ambiente e secrets), então funciona nos dois mundos.
-
----
 
 ## Publicar a interface no Streamlit Community Cloud
 
@@ -139,29 +156,39 @@ duas formas (ambiente e secrets), então funciona nos dois mundos.
 Observações:
 - Não crie um `requirements.txt` dentro de `app/`: a plataforma procura primeiro na pasta
   do arquivo principal e depois na raiz. O da raiz já é o correto (sem Playwright).
+- O tema escuro é definido em `.streamlit/config.toml` e complementado pelo CSS em
+  `app/ui/theme.py`.
 - App do plano gratuito "dorme" após inatividade; a próxima visita reativa.
-- Se o Python da plataforma for mais antigo que 3.12, ajuste a versão nas configurações
-  avançadas do app.
 
----
+## Coleta automática (GitHub Actions)
 
-## GitHub Actions (coleta agendada)
-
-O workflow está em `.github/workflows/coleta.yml`.
+O workflow está em `.github/workflows/coleta.yml` e roda **a cada 6 horas**
+(`cron: "0 */6 * * *"`), além de permitir execução manual.
 
 1. No GitHub: **Settings → Secrets and variables → Actions → New repository secret**.
 2. Nome: `DATABASE_URL`. Valor: a mesma URL PostgreSQL (com `?sslmode=require`).
 3. **Actions → Coleta de precos → Run workflow** para testar manualmente.
-4. Para agendar, descomente o bloco `schedule` do workflow. Sugestão conservadora já
-   deixada no arquivo: **duas vezes por semana**. Ajuste ao seu gosto — evite frequência
-   alta para não sobrecarregar os sites das lojas.
-5. O workflow tem `concurrency: coleta-precos`, então **duas coletas não rodam ao mesmo
-   tempo** (a segunda espera). Também tem `timeout-minutes: 45` (a coleta completa leva
-   cerca de 15 minutos) e falha com mensagem clara se o segredo não existir.
+4. Para mudar a frequência, edite o bloco `schedule` do workflow. Evite intervalos muito
+   curtos para não sobrecarregar os sites das lojas.
 
-O workflow **não** comita nada: só grava no banco externo.
+Cada execução grava uma linha na tabela `coletas` (status, horários, itens novos,
+atualizados e erros), exibida no dashboard como **"Status da coleta automática"**.
 
----
+O workflow tem `concurrency: coleta-precos` (duas coletas não rodam ao mesmo tempo),
+`timeout-minutes: 45` e falha com mensagem clara se o segredo não existir. Ele **não**
+comita nada: só grava no banco externo.
+
+## Confiabilidade dos coletores
+
+- **Pausas aleatórias** de 4 a 9 segundos entre requisições e User-Agent real.
+- **Timeout** por página e **tentativa automática** (2 tentativas) antes de desistir.
+- **Detecção de bloqueio** (página de captcha/verificação) que interrompe a loja.
+- **Preço inválido é ignorado** (nunca grava zero ou vazio): ofertas sem preço à vista
+  não entram no banco.
+- **Prevenção de duplicados** pela `link` da oferta e pelo `(peça, data, preço)` no
+  histórico.
+- **Preços antigos são preservados**: se uma loja falhar, o último preço válido continua
+  no banco e o dashboard sinaliza "há N dias sem atualizar".
 
 ## Migrar o banco local (`precos.db`) para o PostgreSQL
 
@@ -180,13 +207,8 @@ python scripts\migrar_sqlite_para_postgres.py
 python scripts\migrar_sqlite_para_postgres.py --executar
 ```
 
-O que é preservado: **IDs das peças**, nome, categoria, preço atual, menor preço histórico,
-loja, link, imagem, data da varredura e **todos** os registros de `historico_precos`.
-
 Recomendação: faça uma cópia de segurança manual do `precos.db` antes (copiar o arquivo
 para outro nome). O script não faz backup nem remove nada.
-
----
 
 ## Diagnóstico
 
@@ -197,31 +219,20 @@ para outro nome). O script não faz backup nem remove nada.
 | `no such table: pecas` | O banco está vazio e o processo não criou as tabelas. Interface, API e coletor já chamam `create_all`; rode uma coleta ou a migração. |
 | Coleta falha com `OperationalError` | Confira a URL (host/usuário/senha) e se o banco aceita conexões externas. |
 | Botão de coleta não aparece | Playwright não está instalado — comportamento esperado na nuvem. |
-| Loja retorna 0 itens | O site mudou o HTML (seletores) ou bloqueou o acesso. Veja o log. |
+| Loja retorna 0 itens | O site mudou o HTML (seletores) ou bloqueou o acesso. Veja o log (`coleta.log`). |
 | Preços não atualizam na tela | A interface tem cache de 60 s. Espere ou recarregue. |
-
-Para ver os detalhes da última coleta local: `type coleta.log`.
-
----
+| "Sem quedas registradas" | Normal quando não há preço coletado há mais de 7 dias. Rode a coleta. |
 
 ## Segurança e termos de uso
 
 - Os endpoints `POST /atualizacoes` e `GET /atualizacoes/ultima` **exigem** o cabeçalho
   `Authorization: Bearer <ADMIN_TOKEN>`. Sem `ADMIN_TOKEN` definido, respondem 503.
 - `GET /pecas*` é leitura pública e não expõe segredo algum.
-- O coletor respeita os sites: pausas aleatórias de 4 a 9 segundos, User-Agent real,
-  e **para** a loja quando detecta bloqueio. Não aumente a frequência sem necessidade.
+- O coletor respeita os sites: pausas aleatórias, User-Agent real e **para** a loja quando
+  detecta bloqueio. Não aumente a frequência sem necessidade.
 - Confira os **termos de uso de cada loja** antes de tornar a coleta pública ou aumentar o
   volume. Scraping automatizado pode ser restrito por contrato, mesmo de dados públicos.
 
----
-
 ## Higiene do repositório
-
-Estes arquivos eram sobras de desenvolvimento e **já foram removidos**:
-
-- `_diag_repro.py` — script de diagnóstico temporário.
-- `resultado_teste.json` — amostra antiga da coleta.
-- `app/agregador-precos.code-workspace` — arquivo de workspace do VS Code dentro de `app/`.
 
 `precos.db` **não** deve ser removido: é o seu banco local. Ele já está no `.gitignore`.

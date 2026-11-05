@@ -14,7 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
-from app.models import HistoricoPreco, Peca
+from app.models import Coleta, HistoricoPreco, Peca
 from app.scrapers.normalizacao import normalizar_titulo
 
 if TYPE_CHECKING:  # apenas para tipagem: não importa Playwright em tempo de execução
@@ -94,3 +94,35 @@ def atualizacao_em_andamento() -> bool:
 
 def obter_ultima_atualizacao() -> dict | None:
     return _ultima_atualizacao
+
+
+def registrar_coleta(
+    db: Session,
+    *,
+    iniciada_em: datetime,
+    terminada_em: datetime | None,
+    status: str,
+    termo: str | None = None,
+    coletados: int = 0,
+    novas: int = 0,
+    atualizadas: int = 0,
+    sem_preco: int = 0,
+    descartados: int = 0,
+    erro: str | None = None,
+) -> Coleta:
+    """Grava uma linha de auditoria da coleta (sucesso ou falha)."""
+    coleta = Coleta(
+        iniciada_em=iniciada_em,
+        terminada_em=terminada_em,
+        status=status,
+        termo=termo,
+        coletados=coletados,
+        novas=novas,
+        atualizadas=atualizadas,
+        sem_preco=sem_preco,
+        descartados=descartados,
+        erro=erro,
+    )
+    db.add(coleta)
+    db.commit()
+    return coleta

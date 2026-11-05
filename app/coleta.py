@@ -22,6 +22,7 @@ from app.servicos import (
     abrir_sessao,
     iniciar_atualizacao,
     liberar_atualizacao,
+    registrar_coleta,
     registrar_ultima_atualizacao,
     salvar_itens,
 )
@@ -47,13 +48,45 @@ def garantir_esquema() -> None:
     Base.metadata.create_all(engine)
 
 
+def _registrar_erro(inicio: datetime, erro: Exception, termo: str | None = None) -> None:
+    """Registra uma falha de coleta sem mascarar a exceção original."""
+    try:
+        with abrir_sessao() as db:
+            registrar_coleta(
+                db,
+                iniciada_em=inicio,
+                terminada_em=datetime.now(),
+                status="erro",
+                termo=termo,
+                erro=f"{type(erro).__name__}: {erro}",
+            )
+    except Exception:  # noqa: BLE001 — o registro não pode esconder o erro real
+        log.exception("Não foi possível registrar a falha da coleta")
+
+
 def atualizar_precos() -> dict:
     """Varre o catálogo completo e grava os preços."""
     garantir_esquema()
     inicio = datetime.now()
-    itens = coletar()
-    with abrir_sessao() as db:
-        gravacao = salvar_itens(db, itens)
+    itens: list = []
+    gravacao: dict = {}
+    try:
+        itens = coletar()
+        with abrir_sessao() as db:
+            gravacao = salvar_itens(db, itens)
+            registrar_coleta(
+                db,
+                iniciada_em=inicio,
+                terminada_em=datetime.now(),
+                status="ok",
+                coletados=len(itens),
+                novas=gravacao["novas"],
+                atualizadas=gravacao["atualizadas"],
+                sem_preco=gravacao["sem_preco"],
+            )
+    except Exception as erro:  # noqa: BLE001 — registra e propaga
+        _registrar_erro(inicio, erro)
+        raise
     resumo = registrar_ultima_atualizacao(_resumo(inicio, itens, gravacao))
     log.info("Coleta do catálogo concluída: %s", resumo)
     return resumo
@@ -66,12 +99,32 @@ def pesquisar_produto(termo: str, exato: bool = False) -> dict:
         raise ValueError("Informe o nome do produto")
     garantir_esquema()
     inicio = datetime.now()
-    coletados = coletar(catalogo={"Pesquisa": [termo]})
-    itens = [item for item in coletados if nome_contem_termo(item.titulo, termo, exato)]
-    with abrir_sessao() as db:
-        gravacao = salvar_itens(db, itens)
+    itens: list = []
+    gravacao: dict = {}
+    descartados = 0
+    try:
+        coletados = coletar(catalogo={"Pesquisa": [termo]})
+        itens = [item for item in coletados if nome_contem_termo(item.titulo, termo, exato)]
+        descartados = len(coletados) - len(itens)
+        with abrir_sessao() as db:
+            gravacao = salvar_itens(db, itens)
+            registrar_coleta(
+                db,
+                iniciada_em=inicio,
+                terminada_em=datetime.now(),
+                status="ok",
+                termo=termo,
+                coletados=len(itens),
+                novas=gravacao["novas"],
+                atualizadas=gravacao["atualizadas"],
+                sem_preco=gravacao["sem_preco"],
+                descartados=descartados,
+            )
+    except Exception as erro:  # noqa: BLE001 — registra e propaga
+        _registrar_erro(inicio, erro, termo=termo)
+        raise
     resumo = _resumo(inicio, itens, gravacao)
-    resumo.update({"termo": termo, "descartados": len(coletados) - len(itens)})
+    resumo.update({"termo": termo, "descartados": descartados})
     log.info("Coleta por termo concluída: %s", resumo)
     return resumo
 

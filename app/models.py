@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, ForeignKey, Numeric, String
+from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -36,3 +36,21 @@ class HistoricoPreco(Base):
     data_registro: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, index=True)
 
     peca: Mapped[Peca] = relationship(back_populates="historico")
+
+
+class Coleta(Base):
+    """Registro de uma execução do coletor (para status e auditoria no dashboard)."""
+
+    __tablename__ = "coletas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    iniciada_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, index=True)
+    terminada_em: Mapped[datetime | None] = mapped_column(DateTime)
+    status: Mapped[str] = mapped_column(String(20), default="ok", index=True)  # ok | erro
+    termo: Mapped[str | None] = mapped_column(String(255))
+    coletados: Mapped[int] = mapped_column(Integer, default=0)
+    novas: Mapped[int] = mapped_column(Integer, default=0)
+    atualizadas: Mapped[int] = mapped_column(Integer, default=0)
+    sem_preco: Mapped[int] = mapped_column(Integer, default=0)
+    descartados: Mapped[int] = mapped_column(Integer, default=0)
+    erro: Mapped[str | None] = mapped_column(String(500))

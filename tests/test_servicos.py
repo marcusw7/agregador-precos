@@ -10,7 +10,7 @@ from app.consultas import buscar_pecas
 from app.database import Base
 from app.models import HistoricoPreco, Peca
 from app.scrapers.base import ItemProduto
-from app.servicos import salvar_itens
+from app.servicos import registrar_coleta, salvar_itens
 
 
 @pytest.fixture
@@ -106,3 +106,42 @@ def test_buscar_pecas_paginacao(db: Session):
 
     pagina_2 = buscar_pecas(db, pagina=2, tamanho=2)
     assert [p.preco_atual for p in pagina_2] == [Decimal("1002.00"), Decimal("1003.00")]
+
+
+def test_registrar_coleta_cria_linha_de_auditoria(db: Session):
+    from datetime import datetime
+
+    from app.models import Coleta
+
+    inicio = datetime.now()
+    coleta = registrar_coleta(
+        db,
+        iniciada_em=inicio,
+        terminada_em=datetime.now(),
+        status="ok",
+        coletados=10,
+        novas=2,
+        atualizadas=8,
+        sem_preco=0,
+        descartados=3,
+    )
+
+    assert coleta.id is not None
+    assert coleta.status == "ok"
+    assert coleta.novas == 2
+    registros = db.query(Coleta).all()
+    assert len(registros) == 1
+
+
+def test_registrar_coleta_de_erro(db: Session):
+    from datetime import datetime
+
+    coleta = registrar_coleta(
+        db,
+        iniciada_em=datetime.now(),
+        terminada_em=datetime.now(),
+        status="erro",
+        erro="PlaywrightTimeout: timeout",
+    )
+    assert coleta.status == "erro"
+    assert "PlaywrightTimeout" in coleta.erro

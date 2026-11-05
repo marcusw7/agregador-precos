@@ -1,6 +1,6 @@
 name: Coleta de precos
 
-# Execucao manual (Actions > Coleta de precos > Run workflow).
+# Execucao manual (Actions > Coleta de precos > Run workflow) e agendada.
 on:
   workflow_dispatch:
     inputs:
@@ -12,11 +12,11 @@ on:
         description: "Correspondencia exata ('true' ou 'false')"
         required: false
         default: "false"
-  # Agendamento periodico: OPCIONAL.
-  # Descomente depois de validar uma execucao manual.
-  # Frequencia conservadora (2x por semana) para respeitar os sites das lojas.
-  # schedule:
-  #   - cron: "0 9 * * 1,4"   # segundas e quintas, 06:00 no horario de Brasilia
+  # Coleta automatica a cada 6 horas (00:00, 06:00, 12:00, 18:00 UTC).
+  # Ajuste aqui a frequencia desejada. Evite intervalos muito curtos para
+  # respeitar os sites das lojas.
+  schedule:
+    - cron: "0 */6 * * *"
 
 # Impede duas coletas ao mesmo tempo: a segunda fica na fila.
 concurrency:
