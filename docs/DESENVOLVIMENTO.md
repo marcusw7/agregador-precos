@@ -8,7 +8,7 @@ Documentação interna para quem desenvolve ou opera o PromoTracker.
 app/
 ├── dashboard.py        # entrada do Streamlit (navegação entre páginas)
 ├── ui/                 # interface (tema, páginas e componentes)
-│   ├── theme.py        # identidade visual (paleta, CSS, logotipo SVG)
+│   ├── theme.py        # identidade visual (paleta, CSS, logotipo)
 │   ├── home.py         # dashboard inicial
 │   ├── catalogo.py     # catálogo com filtros e cards
 │   ├── produto.py      # página individual do produto + histórico

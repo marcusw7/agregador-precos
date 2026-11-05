@@ -1,6 +1,6 @@
 """Identidade visual do PromoTracker.
 
-Centraliza paleta, tipografia, logotipo (SVG) e o CSS global. As páginas importam
+Centraliza paleta, tipografia, logotipo (HTML/CSS) e o CSS global. As páginas importam
 daqui para manter a aparência consistente.
 """
 
@@ -35,20 +35,12 @@ COR_AMBAR = CORES["ambar"]
 COR_TEXTO = CORES["texto"]
 COR_MUDO = CORES["texto_mudo"]
 
-LOGO_SVG = """
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 248 40" width="248" height="40" role="img" aria-label="PromoTracker">
-  <defs>
-    <linearGradient id="ptgrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#6366f1"/>
-      <stop offset="1" stop-color="#8b5cf6"/>
-    </linearGradient>
-  </defs>
-  <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#ptgrad)"/>
-  <path d="M9 27 L16 20 L22 24 L31 13" stroke="#ffffff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="31" cy="13" r="2.6" fill="#ffffff"/>
-  <text x="50" y="27.5" font-family="Inter, Segoe UI, sans-serif" font-size="21" font-weight="800" fill="#e6e9ef" letter-spacing="-0.3">Promo<tspan fill="#8b5cf6">Tracker</tspan></text>
-</svg>
-"""
+LOGO_HTML = (
+    '<a class="pt-brand" href="?pagina=inicio" aria-label="PromoTracker — início">'
+    '<span class="pt-logo-mark">P</span>'
+    '<span class="pt-logo-text">Promo<span>Tracker</span></span>'
+    "</a>"
+)
 
 ESTILO = """
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -98,6 +90,15 @@ header[data-testid="stHeader"] { background: transparent; }
   flex-wrap: wrap;
 }
 .pt-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.pt-logo-mark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 10px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff; font-weight: 800; font-size: 19px; line-height: 1;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, .35);
+}
+.pt-logo-text { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; color: var(--pt-text); }
+.pt-logo-text span { color: var(--pt-violet); }
 .pt-nav-links { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
 .pt-nav-link {
   display: inline-block; padding: 8px 16px; border-radius: 10px;
@@ -236,8 +237,8 @@ def aplicar_tema() -> None:
 
 
 def logotipo() -> str:
-    """HTML do logotipo (SVG inline)."""
-    return LOGO_SVG
+    """HTML do logotipo (marca + nome PromoTracker)."""
+    return LOGO_HTML
 
 
 def navbar(pagina_ativa: str) -> None:
@@ -251,12 +252,7 @@ def navbar(pagina_ativa: str) -> None:
         for chave, rotulo in links
     )
     st.html(
-        f"""
-        <div class="pt-navbar">
-          <a class="pt-brand" href="?pagina=inicio">{LOGO_SVG}</a>
-          <div class="pt-nav-links">{itens}</div>
-        </div>
-        """
+        f'<div class="pt-navbar">{LOGO_HTML}<div class="pt-nav-links">{itens}</div></div>'
     )
 
 
