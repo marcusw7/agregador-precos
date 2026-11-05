@@ -76,4 +76,4 @@ jobs:
 
       - name: Resumo
         if: always()
-        run: echo "Coleta finalizada. Status do job: ${{ job.status }}."
+        run: 'echo "Coleta finalizada. Status do job: ${{ job.status }}."'
