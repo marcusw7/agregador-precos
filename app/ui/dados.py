@@ -157,6 +157,16 @@ def calcular_metricas(pecas: pd.DataFrame, historico: pd.DataFrame) -> pd.DataFr
     return pecas
 
 
+@st.cache_data(ttl=60)
+def catalogo_com_metricas() -> pd.DataFrame:
+    """Catálogo completo com as métricas derivadas (variação 7d, dias sem atualizar).
+
+    O cálculo das métricas percorre todo o histórico, então é cacheado para que
+    navegar/filtrar centenas de produtos não recalcule tudo a cada interação.
+    """
+    return calcular_metricas(carregar_pecas(), carregar_historico_completo())
+
+
 def resumo_estatistico(pecas: pd.DataFrame, historico: pd.DataFrame, coletas: pd.DataFrame) -> dict:
     """Números para o topo do dashboard."""
     total = len(pecas)

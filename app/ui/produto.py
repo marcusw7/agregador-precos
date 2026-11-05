@@ -11,10 +11,8 @@ import streamlit as st
 from app.scrapers.normalizacao import chave_comparacao
 from app.ui.dados import (
     IMAGEM_PADRAO,
-    calcular_metricas,
     carregar_historico,
-    carregar_historico_completo,
-    carregar_pecas,
+    catalogo_com_metricas,
     numero_ou_none,
 )
 from app.ui.theme import (
@@ -71,9 +69,10 @@ def _grafico(historico: pd.DataFrame, periodo: str) -> alt.Chart | None:
 
     return (
         (linha + regra_min)
-        .properties(height=320)
+        .properties(height=360)
         .configure_view(strokeWidth=0)
         .configure_axis(labelColor=COR_MUDO, titleColor=COR_MUDO)
+        .configure(padding={"left": 8, "top": 10, "right": 16, "bottom": 8})
     )
 
 
@@ -88,8 +87,7 @@ def _comparacao_lojas(peca: pd.Series, todas: pd.DataFrame) -> pd.DataFrame:
 
 
 def render() -> None:
-    todas = carregar_pecas()
-    historico_completo = carregar_historico_completo()
+    todas = catalogo_com_metricas()
 
     st.html('<a class="pt-nav-link" href="?pagina=catalogo">← Voltar ao catálogo</a>')
 
@@ -143,8 +141,7 @@ def render() -> None:
         )
 
         # Variação 7 dias
-        metricas = calcular_metricas(todas, historico_completo)
-        linha = metricas[metricas["id"] == peca_id]
+        linha = todas[todas["id"] == peca_id]
         if not linha.empty:
             variacao = numero_ou_none(linha.iloc[0].get("variacao_7d"))
             if variacao is not None:

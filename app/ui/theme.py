@@ -187,16 +187,45 @@ header[data-testid="stHeader"] { background: transparent; }
 /* Preço grande */
 .pt-price-hero { font-size: 42px; font-weight: 800; color: var(--pt-green); line-height: 1; }
 
+/* Gráficos: garante que o gráfico apareça por inteiro (eixo inferior não corta) */
+[data-testid="stVegaLiteChart"],
+[data-testid="stVegaLiteChart"] > div {
+  overflow: visible !important;
+}
+[data-testid="stVegaLiteChart"] {
+  padding-bottom: 10px;
+}
+
+/* Barra lateral: transição suave ao abrir/fechar */
+[data-testid="stSidebar"] {
+  transition: transform .22s ease, width .22s ease, min-width .22s ease;
+}
+
 /* Responsivo */
 @media (max-width: 820px) {
   .pt-produto { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
   .pt-hero h1 { font-size: 26px; }
+  .pt-price-hero { font-size: 34px; }
   div[data-testid="stHorizontalBlock"] { flex-wrap: wrap; }
   div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
     flex: 1 1 100% !important; width: 100% !important; min-width: 100% !important;
   }
+  /* Barra lateral como gaveta mais larga e confortável no celular */
+  [data-testid="stSidebar"] {
+    width: 86vw !important;
+    min-width: 86vw !important;
+    max-width: 86vw !important;
+  }
+  .pt-navbar { gap: 10px; }
+  .pt-nav-links { margin-left: 0; width: 100%; justify-content: flex-start; }
+}
+@media (max-width: 420px) {
+  .pt-hero h1 { font-size: 23px; }
+  .pt-grid { grid-template-columns: 1fr; }
+  .pt-card-media { height: 140px; }
+  .pt-price-hero { font-size: 30px; }
 }
 """
 

@@ -8,19 +8,14 @@ import streamlit as st
 from app.ui.componentes import barra_pesquisa, grade_cards_html, secao
 from app.ui.coleta_local import coletor_disponivel, iniciar_coleta
 from app.ui.dados import (
-    calcular_metricas,
     carregar_coletas,
-    carregar_historico_completo,
-    carregar_pecas,
-    numero_ou_none,
+    catalogo_com_metricas,
     resumo_estatistico,
 )
 from app.ui.theme import (
-    COR_AMBAR,
     COR_VERDE,
     COR_VERMELHO,
     esc,
-    formatar_brl,
     formatar_data,
 )
 
@@ -85,11 +80,9 @@ def _painel_coleta(coletas: pd.DataFrame, resumo: dict) -> None:
 
 
 def render() -> None:
-    todas = carregar_pecas()
-    historico = carregar_historico_completo()
+    metricas = catalogo_com_metricas()
     coletas = carregar_coletas()
-    metricas = calcular_metricas(todas, historico)
-    resumo = resumo_estatistico(todas, historico, coletas)
+    resumo = resumo_estatistico(metricas, None, coletas)
 
     # Hero
     st.html(
@@ -106,7 +99,7 @@ def render() -> None:
     st.html(_estatisticas(resumo))
     _painel_coleta(coletas, resumo)
 
-    if todas.empty:
+    if metricas.empty:
         st.info("Ainda não há produtos monitorados. Aguarde a primeira coleta automática.")
         return
 
