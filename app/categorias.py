@@ -7,3 +7,5 @@ class Categoria(str, Enum):
     PLACA_MAE = "Placa-mãe"
     MEMORIA_RAM = "Memória RAM"
     SSD = "SSD"
+    MONITOR = "Monitor"
+    CADEIRA = "Cadeira"

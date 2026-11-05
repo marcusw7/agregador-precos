@@ -5,6 +5,7 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
+from app.atributos import ATRIBUTOS_POR_CATEGORIA
 from app.ui.dados import IMAGEM_PADRAO, numero_ou_none
 from app.ui.theme import badge_variacao, esc, formatar_brl, formatar_data
 
@@ -40,8 +41,19 @@ def card_html(linha: pd.Series) -> str:
     menor = formatar_brl(linha["menor_preco_historico"])
 
     marca = linha.get("Marca")
-    chip = linha.get("Chip") or linha.get("Chipset") or linha.get("Modelo")
-    detalhes = " · ".join(str(v) for v in (marca, chip) if isinstance(v, str) and v)
+    partes = []
+    if isinstance(marca, str) and marca:
+        partes.append(marca)
+    for atributo in ATRIBUTOS_POR_CATEGORIA.get(linha["categoria"], []):
+        valor = linha.get(atributo)
+        if isinstance(valor, str) and valor:
+            partes.append(valor)
+    # deduplica preservando a ordem
+    vistas = []
+    for parte in partes:
+        if parte not in vistas:
+            vistas.append(parte)
+    detalhes = " · ".join(vistas)
 
     variacao = numero_ou_none(linha.get("variacao_7d"))
     dias = numero_ou_none(linha.get("dias_sem_atualizar"))

@@ -127,7 +127,7 @@ def render() -> None:
 
         # Especificações
         specs = []
-        for atributo in ["Marca", "Chip", "VRAM", "Modelo", "Socket", "Chipset", "Tipo", "Interface", "Capacidade", "Frequência"]:
+        for atributo in ["Marca", "Chip", "VRAM", "Modelo", "Socket", "Chipset", "Tipo", "Interface", "Capacidade", "Frequência", "Tamanho", "Resolução", "Taxa"]:
             valor = peca.get(atributo)
             if isinstance(valor, str) and valor:
                 specs.append(f'<span class="pt-badge pt-badge-mudo">{esc(atributo)}: {esc(valor)}</span>')

@@ -1,9 +1,9 @@
 # PromoTracker
 
 Plataforma de **comparação e acompanhamento de preços de hardware**. Monitora **GPU, CPU,
-placa-mãe, memória RAM e SSD** em cinco lojas brasileiras (KaBuM!, Pichau, Terabyte,
-Patoloco e Amazon) e mantém o **histórico de preços** para você acompanhar a evolução e
-identificar as melhores oportunidades.
+placa-mãe, memória RAM, SSD, monitores e cadeiras** em cinco lojas brasileiras (KaBuM!,
+Pichau, Terabyte, Patoloco e Amazon) e mantém o **histórico de preços** para você
+acompanhar a evolução e identificar as melhores oportunidades.
 
 ## Funcionalidades
 

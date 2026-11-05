@@ -6,4 +6,6 @@ CATALOGO: dict[str, list[str]] = {
     Categoria.PLACA_MAE.value: ["placa mae B650 AM5", "placa mae B760 LGA1700"],
     Categoria.MEMORIA_RAM.value: ["memoria DDR5 16GB 6000", "memoria DDR4 16GB 3200"],
     Categoria.SSD.value: ["SSD NVMe 1TB", "SSD SATA 480GB"],
+    Categoria.MONITOR.value: ["monitor 144hz", "monitor 27 polegadas"],
+    Categoria.CADEIRA.value: ["cadeira gamer", "cadeira ergonomica"],
 }

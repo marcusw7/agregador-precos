@@ -43,21 +43,21 @@ def _preparar() -> None:
 def main() -> None:
     _preparar()
 
-    pagina = st.query_params.get("pagina", "inicio")
+    pagina = st.query_params.get("pagina", "catalogo")
     if pagina not in PAGINAS:
-        pagina = "inicio"
+        pagina = "catalogo"
 
     navbar(pagina)
 
     with st.sidebar:
         st.caption(f"Banco: {'PostgreSQL' if usar_postgres() else 'SQLite local'}")
 
-    if pagina == "catalogo":
-        catalogo.render()
+    if pagina == "inicio":
+        home.render()
     elif pagina == "produto":
         produto.render()
     else:
-        home.render()
+        catalogo.render()
 
 
 if __name__ == "__main__":

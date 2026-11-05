@@ -86,3 +86,28 @@ def test_atributos_ssd_sem_interface_identificada():
 def test_categoria_desconhecida_traz_apenas_marca():
     atributos = extrair_atributos("Teclado Redragon Kumara", "Outros")
     assert atributos == {"Marca": "Redragon"}
+
+
+def test_atributos_monitor():
+    atributos = extrair_atributos("Monitor LG UltraGear 27 polegadas Full HD 144Hz", "Monitor")
+    assert atributos["Marca"] == "LG"
+    assert atributos["Tamanho"] == '27"'
+    assert atributos["Resolução"] == "Full HD"
+    assert atributos["Taxa"] == "144Hz"
+
+
+def test_atributos_monitor_com_aspas_e_qhd():
+    atributos = extrair_atributos('Monitor Gamer AOC Hero 24" Quad HD 165Hz', "Monitor")
+    assert atributos["Marca"] == "AOC"
+    assert atributos["Tamanho"] == '24"'
+    assert atributos["Resolução"] == "QHD"
+    assert atributos["Taxa"] == "165Hz"
+
+
+def test_atributos_cadeira():
+    atributos = extrair_atributos("Cadeira Gamer ThunderX3 TGC12", "Cadeira")
+    assert atributos["Marca"] == "ThunderX3"
+    assert atributos["Tipo"] == "Gamer"
+
+    ergonomica = extrair_atributos("Cadeira Ergonômica de Escritório", "Cadeira")
+    assert ergonomica["Tipo"] == "Ergonômica"

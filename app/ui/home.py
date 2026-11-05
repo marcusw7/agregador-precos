@@ -97,7 +97,7 @@ def render() -> None:
         """
         <div class="pt-hero">
           <h1>Acompanhe e economize em hardware</h1>
-          <p>Compare preços de GPU, CPU, placa-mãe, memória RAM e SSD entre lojas brasileiras,
+          <p>Compare preços de GPU, CPU, placa-mãe, memória RAM, SSD, monitores e cadeiras entre lojas brasileiras,
              com histórico de preços e alertas de queda — tudo em um só lugar.</p>
         </div>
         """,

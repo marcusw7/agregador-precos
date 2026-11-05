@@ -3,8 +3,8 @@ import re
 from app.categorias import Categoria
 
 EXCLUIR = re.compile(
-    r"cooler|fonte|gabinete|water\s*cooler|suporte|cabo|adaptador|notebook|monitor|kit\s+upgrade|"
-    r"pc\s+gamer|computador|\bcase\b|gaveta|dock|conversor|enclosure",
+    r"cooler|fonte|gabinete|water\s*cooler|suporte|cabo|adaptador|notebook|kit\s+upgrade|"
+    r"pc\s+gamer|computador|\bcase\b|gaveta|dock|conversor|enclosure|bra[cç]o",
     re.IGNORECASE,
 )
 
@@ -37,6 +37,14 @@ REGRAS: list[tuple[Categoria, re.Pattern]] = [
     (
         Categoria.SSD,
         re.compile(r"\bssd\b|\bnvme\b", re.IGNORECASE),
+    ),
+    (
+        Categoria.MONITOR,
+        re.compile(r"\bmonitor(?:es)?\b|\bdisplay\b", re.IGNORECASE),
+    ),
+    (
+        Categoria.CADEIRA,
+        re.compile(r"\bcadeira\b", re.IGNORECASE),
     ),
 ]
 

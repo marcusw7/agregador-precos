@@ -50,6 +50,16 @@ MARCAS: dict[str, list[str]] = {
     "Silicon Power": ["silicon power"],
     "Team Group": ["team group", "teamgroup"],
     "Netac": ["netac"],
+    "LG": ["lg"],
+    "AOC": ["aoc"],
+    "Acer": ["acer"],
+    "Dell": ["dell"],
+    "BenQ": ["benq"],
+    "Philips": ["philips"],
+    "DT3": ["dt3", "dt 3"],
+    "ThunderX3": ["thunderx3", "thunder x3"],
+    "XT Racer": ["xt racer", "xtracer"],
+    "Elements": ["elements"],
 }
 
 GPU_CHIP = re.compile(r"\b(rtx|gtx)\s?(\d{4})\s?(ti|super|xt)?\b")
@@ -62,6 +72,15 @@ DDR = re.compile(r"\b(ddr[345])\b")
 CAPACIDADE = re.compile(r"\b(\d{1,3})\s?gb\b")
 CAPACIDADE_DISCO = re.compile(r"\b(\d{1,4})\s?(tb|gb)\b")
 FREQUENCIA = re.compile(r"\b(\d{3,4})\s?mhz\b")
+TAMANHO_MONITOR = re.compile(
+    r"\b(\d{2})\s?(?:pol(?:egadas?)?|in(?:ch(?:es)?)?)\.?\b|\b(\d{2})\s*(?:[\"”]|''|´´)",
+    re.IGNORECASE,
+)
+RESOLUCAO = re.compile(
+    r"\b(full\s*hd|fhd|quad\s*hd|qhd|ultra\s*hd|uhd|4k|2k|\d{3,4}p)\b",
+    re.IGNORECASE,
+)
+TAXA = re.compile(r"\b(\d{2,3})\s?hz\b", re.IGNORECASE)
 
 ATRIBUTOS_POR_CATEGORIA: dict[str, list[str]] = {
     Categoria.GPU.value: ["Chip", "VRAM"],
@@ -69,6 +88,8 @@ ATRIBUTOS_POR_CATEGORIA: dict[str, list[str]] = {
     Categoria.PLACA_MAE.value: ["Chipset", "Socket"],
     Categoria.MEMORIA_RAM.value: ["Tipo", "Capacidade", "Frequência"],
     Categoria.SSD.value: ["Interface", "Capacidade"],
+    Categoria.MONITOR.value: ["Tamanho", "Resolução", "Taxa"],
+    Categoria.CADEIRA.value: ["Tipo"],
 }
 
 TODOS_ATRIBUTOS = [
@@ -82,6 +103,9 @@ TODOS_ATRIBUTOS = [
     "Interface",
     "Capacidade",
     "Frequência",
+    "Tamanho",
+    "Resolução",
+    "Taxa",
 ]
 
 
@@ -151,6 +175,42 @@ def _socket(texto: str) -> str | None:
     return valor
 
 
+def _tamanho_monitor(titulo: str) -> str | None:
+    """Tamanho do monitor em polegadas (ex.: '24"'), lendo do título original."""
+    casamento = TAMANHO_MONITOR.search(titulo)
+    if not casamento:
+        return None
+    valor = casamento.group(1) or casamento.group(2)
+    return f'{valor}"'
+
+
+def _normalizar_resolucao(valor: str) -> str:
+    chave = valor.lower().replace(" ", "").replace("_", "")
+    return {
+        "fullhd": "Full HD",
+        "fhd": "Full HD",
+        "1080p": "Full HD",
+        "quadhd": "QHD",
+        "qhd": "QHD",
+        "1440p": "QHD",
+        "2k": "QHD",
+        "ultrahd": "4K",
+        "uhd": "4K",
+        "2160p": "4K",
+        "4k": "4K",
+    }.get(chave, valor.upper())
+
+
+def _tipo_cadeira(texto: str) -> str | None:
+    if re.search(r"\bgamer\b", texto):
+        return "Gamer"
+    if re.search(r"\bergonom", texto):
+        return "Ergonômica"
+    if re.search(r"\bescrit[oó]rio\b", texto):
+        return "Escritório"
+    return None
+
+
 def extrair_atributos(titulo: str, categoria: str) -> dict[str, str]:
     texto = _texto(titulo)
     atributos: dict[str, str] = {}
@@ -202,5 +262,19 @@ def extrair_atributos(titulo: str, categoria: str) -> dict[str, str]:
         capacidade = CAPACIDADE_DISCO.search(texto)
         if capacidade:
             atributos["Capacidade"] = f"{_numero(capacidade.group(1))}{capacidade.group(2).upper()}"
+    elif categoria == Categoria.MONITOR.value:
+        tamanho = _tamanho_monitor(titulo)
+        if tamanho:
+            atributos["Tamanho"] = tamanho
+        resolucao = RESOLUCAO.search(texto)
+        if resolucao:
+            atributos["Resolução"] = _normalizar_resolucao(resolucao.group(1))
+        taxa = TAXA.search(texto)
+        if taxa:
+            atributos["Taxa"] = f"{taxa.group(1)}Hz"
+    elif categoria == Categoria.CADEIRA.value:
+        tipo = _tipo_cadeira(texto)
+        if tipo:
+            atributos["Tipo"] = tipo
 
     return atributos

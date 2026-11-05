@@ -90,6 +90,16 @@ def test_classificador_por_titulo():
     assert classificar_categoria("Teclado mecânico") is None
 
 
+def test_classificador_monitor_e_cadeira():
+    assert classificar_categoria("Monitor LG UltraGear 27 polegadas Full HD 144Hz").value == "Monitor"
+    assert classificar_categoria("Monitor Gamer AOC 24 pol 165Hz").value == "Monitor"
+    assert classificar_categoria("Cadeira Gamer ThunderX3 TGC12").value == "Cadeira"
+    assert classificar_categoria("Cadeira Ergonômica de Escritório").value == "Cadeira"
+    # acessórios continuam fora
+    assert classificar_categoria("Suporte Articulado para Monitor 32 polegadas") is None
+    assert classificar_categoria("Braço Articulado para Monitor") is None
+
+
 def test_kabum_extrai_campos_e_trata_ausencias():
     itens = KabumScraper().parse(KABUM_HTML)
 
