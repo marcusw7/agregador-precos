@@ -113,6 +113,23 @@ def test_atributos_cadeira():
     assert ergonomica["Tipo"] == "Ergonômica"
 
 
+def test_atributos_fonte():
+    atributos = extrair_atributos("Fonte Corsair RM750 750W 80 Plus Gold Full Modular", "Fonte")
+    assert atributos["Marca"] == "Corsair"
+    assert atributos["Potência"] == "750W"
+    assert atributos["Certificação"] == "80 Plus Gold"
+
+    sem_nivel = extrair_atributos("Fonte 650W 80 Plus", "Fonte")
+    assert sem_nivel["Potência"] == "650W"
+    assert sem_nivel["Certificação"] == "80 Plus"
+
+
+def test_atributos_gabinete():
+    atributos = extrair_atributos("Gabinete Gamer ATX Mid Tower Com Vidro Temperado", "Gabinete")
+    assert atributos["Tamanho"] == "Mid Tower"
+    assert atributos["Lateral"] == "Vidro Temperado"
+
+
 def test_chave_produto_agrupa_mesmo_modelo():
     from app.atributos import chave_produto
 

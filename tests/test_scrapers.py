@@ -85,7 +85,7 @@ def test_classificador_por_titulo():
     assert classificar_categoria("HD 1TB Seagate Barracuda") is None
     assert classificar_categoria("Case Externo Para SSD M2 NVMe USB-C") is None
     assert classificar_categoria("Gaveta para SSD SATA 2.5") is None
-    assert classificar_categoria("Fonte MSI MAG A650BN 650W") is None
+    assert classificar_categoria("Fonte MSI MAG A650BN 650W").value == "Fonte"
     assert classificar_categoria("Cooler Para Processador LGA 1700") is None
     assert classificar_categoria("Teclado mecânico") is None
 
@@ -98,6 +98,22 @@ def test_classificador_monitor_e_cadeira():
     # acessórios continuam fora
     assert classificar_categoria("Suporte Articulado para Monitor 32 polegadas") is None
     assert classificar_categoria("Braço Articulado para Monitor") is None
+
+
+def test_classificador_fonte_gabinete_e_acessorios():
+    # produtos principais
+    assert classificar_categoria("Fonte Corsair RM750 750W 80 Plus Gold").value == "Fonte"
+    assert classificar_categoria("Gabinete Gamer ATX Mid Tower Com Vidro").value == "Gabinete"
+    # acessórios NÃO confundidos com SSD
+    assert classificar_categoria("Dissipador SSD M.2 2280 NVMe") is None
+    assert classificar_categoria("Heatsink para SSD NVMe M.2") is None
+    assert classificar_categoria("Heat Sink SSD M.2 2280") is None
+    # SSD verdadeiro continua SSD
+    assert classificar_categoria("SSD 1TB NVMe M.2 2280 Kingston").value == "SSD"
+    # memória RAM verdadeira continua correta
+    assert classificar_categoria("Memoria Kingston Fury Beast 16GB DDR5 6000MHz").value == "Memória RAM"
+    # gabinete não é confundido com acessório
+    assert classificar_categoria("Case Externo Para SSD M2 NVMe USB-C") is None
 
 
 def test_kabum_extrai_campos_e_trata_ausencias():
@@ -130,7 +146,7 @@ def test_kabum_extrai_campos_e_trata_ausencias():
 def test_pichau_extrai_campos_e_filtra_categorias():
     itens = PichauScraper().parse(PICHAU_HTML)
 
-    assert len(itens) == 1
+    assert len(itens) == 2
     item = itens[0]
     assert item.titulo == "Placa de Video PNY GeForce RTX 5050"
     assert item.categoria == "GPU"
@@ -140,6 +156,11 @@ def test_pichau_extrai_campos_e_filtra_categorias():
     assert item.loja == "Pichau"
     assert item.imagem_url == "https://www.pichau.com.br/media/pny.png"
     assert item.link == "https://www.pichau.com.br/placa-de-video-pny-rtx-5050"
+
+    fonte = itens[1]
+    assert fonte.categoria == "Fonte"
+    assert fonte.titulo == "Fonte MSI MAG A650BN 650W 80 Plus Bronze"
+    assert fonte.preco_avista == Decimal("289.99")
 
 
 TERABYTE_HTML = """
@@ -304,7 +325,7 @@ AMAZON_HTML = """
 def test_amazon_extrai_campos_e_filtra_categoria():
     itens = AmazonScraper().parse(AMAZON_HTML)
 
-    assert len(itens) == 1
+    assert len(itens) == 2
     item = itens[0]
     assert item.titulo == "Placa de Vídeo ASRock Radeon RX 7600 Challenger OC, 8GB, GDDR6"
     assert item.categoria == "GPU"
@@ -314,6 +335,11 @@ def test_amazon_extrai_campos_e_filtra_categoria():
     assert item.loja == "Amazon"
     assert item.imagem_url == "https://m.media-amazon.com/images/I/x.jpg"
     assert item.link == "https://www.amazon.com.br/ASRock-RX7600/dp/B0C626FFG2/ref=sr_1_2"
+
+    fonte = itens[1]
+    assert fonte.categoria == "Fonte"
+    assert fonte.titulo == "Fonte Corsair 650W 80 Plus Bronze"
+    assert fonte.preco_avista == Decimal("399.90")
 
 
 def test_urls_busca_por_categoria_e_slug():

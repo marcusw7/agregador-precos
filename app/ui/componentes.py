@@ -59,15 +59,22 @@ def card_html(linha: pd.Series) -> str:
     dias = numero_ou_none(linha.get("dias_sem_atualizar"))
 
     n_registros = int(linha.get("n_registros") or 0)
-    # "Menor histórico" só é mostrado quando há mais de um registro (senão é óbvio/enganoso).
-    no_minimo = (
-        float(linha["preco_atual"]) <= float(linha["menor_preco_historico"])
+    menor_hist = float(linha["menor_preco_historico"])
+    max_hist = numero_ou_none(linha.get("max_preco_historico"))
+    preco = float(linha["preco_atual"])
+    # "No menor preço" real: o preço variou (máximo > mínimo) e está no menor registrado.
+    no_menor_preco = (
+        preco <= menor_hist
         and n_registros >= 2
+        and max_hist is not None
+        and max_hist > menor_hist
     )
 
     badges = []
-    if no_minimo:
-        badges.append('<span class="pt-badge pt-badge-verde">Menor histórico</span>')
+    if no_menor_preco:
+        badges.append('<span class="pt-badge pt-badge-verde">No menor preço</span>')
+    elif n_registros < 2:
+        badges.append('<span class="pt-badge pt-badge-mudo">Sem histórico</span>')
     badges.append(badge_variacao(variacao))
     if dias is not None and dias >= 3:
         badges.append(f'<span class="pt-badge pt-badge-ambar">há {int(dias)}d sem atualizar</span>')

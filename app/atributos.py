@@ -81,6 +81,12 @@ RESOLUCAO = re.compile(
     re.IGNORECASE,
 )
 TAXA = re.compile(r"\b(\d{2,3})\s?hz\b", re.IGNORECASE)
+POTENCIA = re.compile(r"\b(\d{3,4})\s?w\b", re.IGNORECASE)
+CERTIFICACAO = re.compile(r"80\s*plus\s*(bronze|gold|silver|platinum|titanium|white)?", re.IGNORECASE)
+FORMATO_GABINETE = re.compile(
+    r"\b(full\s*tower|mid\s*tower|mini\s*tower)\b", re.IGNORECASE
+)
+LATERAL_VIDRO = re.compile(r"vidro\s*temperado|tempered\s*glass|lateral\s+de\s+vidro", re.IGNORECASE)
 
 ATRIBUTOS_POR_CATEGORIA: dict[str, list[str]] = {
     Categoria.GPU.value: ["Chip", "VRAM"],
@@ -90,6 +96,8 @@ ATRIBUTOS_POR_CATEGORIA: dict[str, list[str]] = {
     Categoria.SSD.value: ["Interface", "Capacidade"],
     Categoria.MONITOR.value: ["Tamanho", "Resolução", "Taxa"],
     Categoria.CADEIRA.value: ["Tipo"],
+    Categoria.FONTE.value: ["Potência", "Certificação"],
+    Categoria.GABINETE.value: ["Tamanho", "Lateral"],
 }
 
 # Atributos usados para agrupar o mesmo modelo entre lojas. É mais restrito que
@@ -102,6 +110,8 @@ ATRIBUTOS_AGRUPAMENTO: dict[str, list[str]] = {
     Categoria.SSD.value: ["Interface", "Capacidade"],
     Categoria.MONITOR.value: ["Tamanho", "Resolução", "Taxa"],
     Categoria.CADEIRA.value: [],
+    Categoria.FONTE.value: [],
+    Categoria.GABINETE.value: [],
 }
 
 TODOS_ATRIBUTOS = [
@@ -118,6 +128,9 @@ TODOS_ATRIBUTOS = [
     "Tamanho",
     "Resolução",
     "Taxa",
+    "Potência",
+    "Certificação",
+    "Lateral",
 ]
 
 
@@ -288,6 +301,20 @@ def extrair_atributos(titulo: str, categoria: str) -> dict[str, str]:
         tipo = _tipo_cadeira(texto)
         if tipo:
             atributos["Tipo"] = tipo
+    elif categoria == Categoria.FONTE.value:
+        potencia = POTENCIA.search(texto)
+        if potencia:
+            atributos["Potência"] = f"{potencia.group(1)}W"
+        certificacao = CERTIFICACAO.search(texto)
+        if certificacao:
+            nivel = certificacao.group(1)
+            atributos["Certificação"] = f"80 Plus {nivel.capitalize()}" if nivel else "80 Plus"
+    elif categoria == Categoria.GABINETE.value:
+        formato = FORMATO_GABINETE.search(texto)
+        if formato:
+            atributos["Tamanho"] = formato.group(1).title()
+        if LATERAL_VIDRO.search(texto):
+            atributos["Lateral"] = "Vidro Temperado"
 
     return atributos
 

@@ -135,11 +135,21 @@ def render() -> None:
 
         menor_hist = float(peca["menor_preco_historico"])
         n_registros = int(peca.get("n_registros") or 0)
-        no_minimo = (float(peca["preco_atual"]) <= menor_hist) and (n_registros >= 2)
+        max_hist = numero_ou_none(peca.get("max_preco_historico"))
+        no_menor_preco = (
+            float(peca["preco_atual"]) <= menor_hist
+            and n_registros >= 2
+            and max_hist is not None
+            and max_hist > menor_hist
+        )
         st.html(
             f'<div class="pt-card-min">Menor preço histórico: <b>R$ {formatar_brl(menor_hist)}</b>'
-            f'{" — <span class=&quot;pt-badge pt-badge-verde&quot;>no menor preço</span>" if no_minimo else ""}</div>'
+            f'{" — <span class=&quot;pt-badge pt-badge-verde&quot;>no menor preço</span>" if no_menor_preco else ""}</div>'
         )
+        if n_registros < 2:
+            st.html(
+                '<div class="pt-card-min" style="color:#94a3b8">Histórico insuficiente para comparação de preços.</div>'
+            )
 
         # Variações 7/30/90 dias
         linha = todas[todas["id"] == peca_id]

@@ -49,25 +49,56 @@ def _painel_coleta(coletas: pd.DataFrame, resumo: dict) -> None:
 
     ultima = coletas.iloc[0]
     status = ultima["status"]
-    cor = COR_VERDE if status == "ok" else COR_VERMELHO
-    rotulo = "Concluída" if status == "ok" else "Falhou"
+
+    if status == "ok":
+        cor = COR_VERDE
+        rotulo = "Concluída"
+    elif status == "parcial":
+        cor = "#fbbf24"
+        rotulo = "Parcial (algumas lojas falharam)"
+    else:
+        cor = COR_VERMELHO
+        rotulo = "Falhou"
+
+    # Tempo de execução
+    duracao = ""
+    if pd.notna(ultima["iniciada_em"]) and pd.notna(ultima["terminada_em"]):
+        segundos = (pd.to_datetime(ultima["terminada_em"]) - pd.to_datetime(ultima["iniciada_em"])).total_seconds()
+        duracao = f" · {int(segundos // 60)}min {int(segundos % 60)}s"
 
     texto = (
-        f"Última coleta: <b style='color:{cor}'>{rotulo}</b> em "
-        f"{formatar_data(ultima['iniciada_em'])}"
+        f"Última execução: <b style='color:{cor}'>{rotulo}</b> em "
+        f"{formatar_data(ultima['iniciada_em'])}{duracao}"
     )
-    if status == "ok":
+    if status in ("ok", "parcial"):
         novas = int(ultima["novas"]) if pd.notna(ultima["novas"]) else 0
         atualizadas = int(ultima["atualizadas"]) if pd.notna(ultima["atualizadas"]) else 0
         texto += f" · {novas} novas · {atualizadas} atualizadas"
-    else:
-        erro = str(ultima["erro"] or "")[:120]
-        if erro:
-            texto += f" · <span title='{esc(erro)}'>erro</span>"
 
+    linhas = [texto]
+
+    # Lojas com falha (quando parcial)
+    if status in ("parcial", "erro") and ultima["erro"]:
+        linhas.append(f"<span style='color:#fbbf24'>{esc(str(ultima['erro'])[:200])}</span>")
+
+    # Última bem-sucedida (diferente da última execução, se a última falhou)
+    bem_sucedidas = coletas[coletas["status"].isin(["ok", "parcial"])]
+    if status not in ("ok", "parcial") and not bem_sucedidas.empty:
+        ultima_ok = bem_sucedidas.iloc[0]
+        linhas.append(
+            f"Última bem-sucedida: {formatar_data(ultima_ok['iniciada_em'])}"
+        )
+
+    # Produtos desatualizados
+    linhas.append(
+        f"{resumo.get('desatualizados', 0)} produtos há 7+ dias sem atualização"
+    )
+
+    corpo = "".join(f"<div class='pt-stat-sub'>{l}</div>" for l in linhas)
     st.html(
-        f"<div class='pt-stat' style='margin-bottom:20px'><div class='pt-stat-label'>Status da coleta automática</div>"
-        f"<div class='pt-stat-sub'>{texto} · próxima: a cada 6 horas (GitHub Actions)</div></div>"
+        f"<div class='pt-stat' style='margin-bottom:20px'>"
+        f"<div class='pt-stat-label'>Status da coleta automática</div>{corpo}"
+        f"<div class='pt-stat-sub' style='margin-top:6px'>próxima: a cada 6 horas (GitHub Actions)</div></div>"
     )
 
     if coletor_disponivel():
@@ -112,10 +143,11 @@ def render() -> None:
     else:
         st.html(grade_cards_html(quedas, DESTAQUES))
 
-    # Melhores ofertas (no menor histórico, com histórico suficiente)
+    # Melhores ofertas (no menor preço de verdade: preço variou e está no menor)
     melhores = metricas[
         (metricas["preco_atual"] <= metricas["menor_preco_historico"])
         & (metricas["n_registros"] >= 2)
+        & (metricas["max_preco_historico"] > metricas["menor_preco_historico"])
     ]
     melhores = melhores.sort_values("preco_atual").head(DESTAQUES)
     secao("🟢 Melhores ofertas (no menor preço histórico)", "?pagina=catalogo")

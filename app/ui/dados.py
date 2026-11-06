@@ -80,13 +80,25 @@ def carregar_historico_recente(dias: int = 120) -> pd.DataFrame:
 
 
 @st.cache_data(ttl=60)
-def carregar_contagens() -> pd.Series:
-    """Total de registros de histórico por peça (para saber se há histórico suficiente)."""
+def carregar_resumo_historico() -> pd.DataFrame:
+    """Por peça: nº de registros e maior preço histórico (agregado via SQL).
+
+    Evita carregar todo o histórico para obter o "maior preço" e o "nº de registros".
+    """
     with SessionLocal() as db:
         linhas = db.execute(
-            select(HistoricoPreco.peca_id, func.count()).group_by(HistoricoPreco.peca_id)
+            select(
+                HistoricoPreco.peca_id,
+                func.count().label("n"),
+                func.max(HistoricoPreco.preco).label("max"),
+            ).group_by(HistoricoPreco.peca_id)
         ).all()
-    return pd.Series({peca_id: int(n) for peca_id, n in linhas}, dtype=int)
+    return pd.DataFrame(
+        [
+            {"peca_id": peca_id, "n_registros": int(n), "max_preco": float(maximo)}
+            for peca_id, n, maximo in linhas
+        ]
+    )
 
 
 @st.cache_data(ttl=60)
@@ -194,15 +206,17 @@ def calcular_metricas(pecas: pd.DataFrame, historico: pd.DataFrame | None) -> pd
 def catalogo_com_metricas() -> pd.DataFrame:
     """Catálogo completo com métricas (variações 7/30/90, dias sem atualizar, nº de registros).
 
-    Usa apenas o histórico recente para as variações e uma contagem agregada por SQL,
-    evitando carregar todo o histórico de uma só vez.
+    Usa apenas o histórico recente para as variações e agregados por SQL para o
+    "maior preço" e "nº de registros", evitando carregar todo o histórico.
     """
     pecas = carregar_pecas()
     recente = carregar_historico_recente(120)
-    contagens = carregar_contagens()
+    resumo = carregar_resumo_historico()
 
     metricas = calcular_metricas(pecas, recente)
-    metricas["n_registros"] = metricas["id"].map(contagens).fillna(0).astype(int)
+    por_peca = resumo.set_index("peca_id")
+    metricas["n_registros"] = metricas["id"].map(por_peca["n_registros"]).fillna(0).astype(int)
+    metricas["max_preco_historico"] = metricas["id"].map(por_peca["max_preco"])
     return metricas
 
 
@@ -231,9 +245,16 @@ def resumo_estatistico(pecas: pd.DataFrame, historico: pd.DataFrame, coletas: pd
     if total:
         condicao = pecas["preco_atual"] <= pecas["menor_preco_historico"]
         if "n_registros" in pecas.columns:
-            # "Menor histórico" só é significativo com mais de um registro.
             condicao = condicao & (pecas["n_registros"] >= 2)
+        if "max_preco_historico" in pecas.columns:
+            condicao = condicao & (
+                pecas["max_preco_historico"] > pecas["menor_preco_historico"]
+            )
         no_minimo = int(condicao.sum())
+
+    desatualizados = 0
+    if total and "dias_sem_atualizar" in pecas.columns:
+        desatualizados = int((pecas["dias_sem_atualizar"] >= 7).sum())
 
     return {
         "total": total,
@@ -242,4 +263,5 @@ def resumo_estatistico(pecas: pd.DataFrame, historico: pd.DataFrame, coletas: pd
         "ultima_varredura": ultima_varredura,
         "ultima_coleta": ultima_coleta,
         "no_minimo": no_minimo,
+        "desatualizados": desatualizados,
     }

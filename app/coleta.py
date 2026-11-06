@@ -64,25 +64,36 @@ def _registrar_erro(inicio: datetime, erro: Exception, termo: str | None = None)
         log.exception("Não foi possível registrar a falha da coleta")
 
 
+def _resumo_falhas(falhas: dict[str, str]) -> str:
+    """Resume as lojas que falharam para registro na coluna de erro."""
+    return "Lojas com falha: " + ", ".join(
+        f"{loja} ({motivo})" for loja, motivo in falhas.items()
+    )
+
+
 def atualizar_precos() -> dict:
     """Varre o catálogo completo e grava os preços."""
     garantir_esquema()
     inicio = datetime.now()
     itens: list = []
     gravacao: dict = {}
+    falhas: dict[str, str] = {}
     try:
-        itens = coletar()
+        itens = coletar(falhas=falhas)
+        status = "parcial" if falhas else "ok"
+        erro = _resumo_falhas(falhas) if falhas else None
         with abrir_sessao() as db:
             gravacao = salvar_itens(db, itens)
             registrar_coleta(
                 db,
                 iniciada_em=inicio,
                 terminada_em=datetime.now(),
-                status="ok",
+                status=status,
                 coletados=len(itens),
                 novas=gravacao["novas"],
                 atualizadas=gravacao["atualizadas"],
                 sem_preco=gravacao["sem_preco"],
+                erro=erro,
             )
     except Exception as erro:  # noqa: BLE001 — registra e propaga
         _registrar_erro(inicio, erro)
@@ -102,23 +113,27 @@ def pesquisar_produto(termo: str, exato: bool = False) -> dict:
     itens: list = []
     gravacao: dict = {}
     descartados = 0
+    falhas: dict[str, str] = {}
     try:
-        coletados = coletar(catalogo={"Pesquisa": [termo]})
+        coletados = coletar(catalogo={"Pesquisa": [termo]}, falhas=falhas)
         itens = [item for item in coletados if nome_contem_termo(item.titulo, termo, exato)]
         descartados = len(coletados) - len(itens)
+        status = "parcial" if falhas else "ok"
+        erro = _resumo_falhas(falhas) if falhas else None
         with abrir_sessao() as db:
             gravacao = salvar_itens(db, itens)
             registrar_coleta(
                 db,
                 iniciada_em=inicio,
                 terminada_em=datetime.now(),
-                status="ok",
+                status=status,
                 termo=termo,
                 coletados=len(itens),
                 novas=gravacao["novas"],
                 atualizadas=gravacao["atualizadas"],
                 sem_preco=gravacao["sem_preco"],
                 descartados=descartados,
+                erro=erro,
             )
     except Exception as erro:  # noqa: BLE001 — registra e propaga
         _registrar_erro(inicio, erro, termo=termo)

@@ -39,7 +39,7 @@ def test_pesquisar_produto_rejeita_termo_vazio():
 def test_pesquisar_produto_usa_termo_no_catalogo(monkeypatch):
     chamadas = {}
 
-    def coletar_falso(catalogo=None, lojas=None):
+    def coletar_falso(catalogo=None, lojas=None, falhas=None):
         chamadas["catalogo"] = catalogo
         return []
 

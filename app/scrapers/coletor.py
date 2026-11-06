@@ -25,9 +25,16 @@ LOJAS: list[LojaScraper] = [
 def coletar(
     catalogo: dict[str, list[str]] | None = None,
     lojas: list[LojaScraper] | None = None,
+    falhas: dict[str, str] | None = None,
 ) -> list[ItemProduto]:
+    """Coleta o catálogo e devolve os itens.
+
+    ``falhas`` (opcional) recebe ``{loja: motivo}`` para as lojas que falharam,
+    permitindo registrar o resultado parcial sem interromper as demais lojas.
+    """
     catalogo = CATALOGO if catalogo is None else catalogo
     lojas = LOJAS if lojas is None else lojas
+    falhas = {} if falhas is None else falhas
     resultados: list[ItemProduto] = []
 
     with sync_playwright() as p:
@@ -43,15 +50,17 @@ def coletar(
                     for url in loja.urls_busca(termos, categoria):
                         try:
                             itens = loja.buscar(pagina, url)
-                        except BloqueioError:
+                        except BloqueioError as erro:
                             log.error(
                                 "%s bloqueou as requisições; coleta desta loja interrompida",
                                 loja.nome_loja,
                             )
+                            falhas[loja.nome_loja] = f"bloqueio: {erro}"
                             bloqueada = True
                             break
-                        except Exception:
+                        except Exception as erro:  # noqa: BLE001
                             log.exception("%s: falha inesperada em %r", loja.nome_loja, url)
+                            falhas[loja.nome_loja] = f"{type(erro).__name__}"
                             continue
                         log.info("%s | %s | %s: %d itens", loja.nome_loja, categoria, url, len(itens))
                         resultados.extend(itens)

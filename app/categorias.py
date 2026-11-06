@@ -9,3 +9,5 @@ class Categoria(str, Enum):
     SSD = "SSD"
     MONITOR = "Monitor"
     CADEIRA = "Cadeira"
+    FONTE = "Fonte"
+    GABINETE = "Gabinete"

@@ -109,3 +109,26 @@ def test_resumo_no_minimo_exige_mais_de_um_registro():
     resumo = resumo_estatistico(pecas, None, pd.DataFrame())
     # peça 1 tem só 1 registro (não conta); peça 2 tem 2 (conta)
     assert resumo["no_minimo"] == 1
+
+
+def test_resumo_no_minimo_exige_preco_variado():
+    """Preço constante (máximo == mínimo) não conta como "no menor preço"."""
+    from app.ui.dados import resumo_estatistico
+
+    agora = datetime.now()
+    pecas = pd.DataFrame(
+        {
+            "id": [1, 2],
+            "categoria": ["GPU", "GPU"],
+            "preco_atual": [100.0, 100.0],
+            "menor_preco_historico": [100.0, 100.0],
+            "loja": ["Loja", "Loja"],
+            "link": ["a", "b"],
+            "data_varredura": [agora, agora],
+            "n_registros": [2, 2],
+            "max_preco_historico": [100.0, 150.0],  # peça 1 nunca variou; peça 2 caiu de 150
+        }
+    )
+    resumo = resumo_estatistico(pecas, None, pd.DataFrame())
+    # apenas a peça 2 está de fato no menor preço (preço variou)
+    assert resumo["no_minimo"] == 1
